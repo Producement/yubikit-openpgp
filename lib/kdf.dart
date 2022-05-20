@@ -46,13 +46,13 @@ extension HashAlgorithmValue on HashAlgorithm {
 }
 
 class KdfData {
-  KdfAlgorithm algorithm;
-  HashAlgorithm hashAlgorithm;
-  int iterationCount;
-  Iterable<int>? pw1SaltBytes;
-  Iterable<int> pw3SaltBytes;
+  final KdfAlgorithm algorithm;
+  final HashAlgorithm hashAlgorithm;
+  final int iterationCount;
+  final Iterable<int>? pw1SaltBytes;
+  final Iterable<int> pw3SaltBytes;
 
-  KdfData(this.algorithm, this.hashAlgorithm, this.iterationCount,
+  const KdfData(this.algorithm, this.hashAlgorithm, this.iterationCount,
       this.pw1SaltBytes, this.pw3SaltBytes);
 
   factory KdfData.parse(Uint8List data) {

@@ -24,14 +24,13 @@ class OpenPGPInterface {
   static const int pw3_83 = 0x83;
 
   final SmartCardInterface _smartCardInterface;
-  Application application = Application.openpgp;
-  Tuple3? _appVersion;
+  final Application application = Application.openpgp;
 
   Future<Tuple3> get applicationVersion async {
-    return _appVersion ??= await getApplicationVersion();
+    return getApplicationVersion();
   }
 
-  OpenPGPInterface(this._smartCardInterface);
+  const OpenPGPInterface(this._smartCardInterface);
 
   Uint8List _formatECAttributes(KeySlot keySlot, ECCurve curve) {
     late int algorithm;
@@ -142,13 +141,14 @@ class OpenPGPInterface {
   }
 
   Future<void> setPinRetries(int pw1Tries, int pw2Tries, int pw3Tries) async {
-    if (await applicationVersion > const Tuple3(1, 0, 0) &&
-        await applicationVersion < const Tuple3(1, 0, 7)) {
+    final appVersion = await applicationVersion;
+    if (appVersion > const Tuple3(1, 0, 0) &&
+        appVersion < const Tuple3(1, 0, 7)) {
       throw Exception(
           "Setting PIN retry counters requires version 1.0.7 or later.");
     }
-    if (await applicationVersion > const Tuple3(4, 0, 0) &&
-        await applicationVersion < const Tuple3(4, 3, 1)) {
+    if (appVersion > const Tuple3(4, 0, 0) &&
+        appVersion < const Tuple3(4, 3, 1)) {
       throw Exception(
           "Setting PIN retry counters requires version 4.3.1 or later.");
     }
@@ -216,16 +216,18 @@ class OpenPGPInterface {
   }
 
   void requireVersion(int first, int second, int third) async {
-    if (await applicationVersion < Tuple3(first, second, third)) {
-      throw Exception("Application version $applicationVersion not supported!");
+    final appVersion = await applicationVersion;
+    if (appVersion < Tuple3(first, second, third)) {
+      throw Exception("Application version $appVersion not supported!");
     }
   }
 
   Future<List<TouchMode>> getSupportedTouchModes() async {
-    if (await applicationVersion < const Tuple3(4, 2, 0)) {
+    final appVersion = await applicationVersion;
+    if (appVersion < const Tuple3(4, 2, 0)) {
       return [];
     }
-    if (await applicationVersion < const Tuple3(5, 2, 1)) {
+    if (appVersion < const Tuple3(5, 2, 1)) {
       return [TouchMode.on, TouchMode.off, TouchMode.fixed];
     }
     return TouchMode.values;

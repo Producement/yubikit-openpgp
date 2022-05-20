@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
 class Tlv {
-  int tag, offset, length, end;
+  final int tag, offset, length, end;
 
-  Tlv(this.tag, this.offset, this.length, this.end);
+  const Tlv(this.tag, this.offset, this.length, this.end);
 
   factory Tlv.parse(List<int> data, {int offset = 0}) {
     int tag = data[offset];
@@ -48,10 +48,10 @@ class Tlv {
 }
 
 class TlvData {
-  Map<int, Tlv> tlvData;
-  Uint8List data;
+  final Map<int, Tlv> tlvData;
+  final Uint8List data;
 
-  TlvData(this.tlvData, this.data);
+  const TlvData(this.tlvData, this.data);
 
   Uint8List getValue(int tag) {
     Tlv? tlv = tlvData[tag];
