@@ -7,7 +7,7 @@ import 'package:convert/convert.dart';
 import 'instruction.dart';
 
 class SmartCardInterface {
-  SmartCardInterface();
+  const SmartCardInterface();
 
 // 90 00 OK
   static const _successfulEnd = [144, 0, 10, 79, 75, 10];
