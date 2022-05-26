@@ -4,10 +4,10 @@ import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:tuple/tuple.dart';
 import 'package:yubikit_openpgp/smartcard/interface.dart';
+import 'package:yubikit_openpgp/smartcard/pin_provider.dart';
 
 import 'curve.dart';
 import 'data_object.dart';
-import 'kdf.dart';
 import 'keyslot.dart';
 import 'smartcard/application.dart';
 import 'smartcard/instruction.dart';
@@ -30,13 +30,14 @@ class YubikitOpenPGP {
   static const int pw3_83 = 0x83;
 
   final SmartCardInterface _smartCardInterface;
+  final PinProvider _pinProvider;
   final Application application = Application.openpgp;
 
   Future<Tuple3> get applicationVersion async {
     return getApplicationVersion();
   }
 
-  const YubikitOpenPGP(this._smartCardInterface);
+  const YubikitOpenPGP(this._smartCardInterface, this._pinProvider);
 
   Uint8List _formatECAttributes(KeySlot keySlot, ECCurve curve) {
     late int algorithm;
@@ -54,18 +55,22 @@ class YubikitOpenPGP {
       [int? timestamp]) async {
     requireVersion(5, 2, 0);
     Uint8List attributes = _formatECAttributes(keySlot, curve);
-    await _setData(keySlot.keyId, attributes);
+    await _setData(keySlot.keyId, attributes,
+        verify: _verifyCommand(pw3_83, _pinProvider.adminPin));
     Uint8List response = await _smartCardInterface.sendApdu(
-        0x00, Instruction.generateAsym, 0x80, 0x00, keySlot.crt);
+        0x00, Instruction.generateAsym, 0x80, 0x00, keySlot.crt,
+        verify: _verifyCommand(pw3_83, _pinProvider.adminPin));
     TlvData data = TlvData.parse(response).get(0x7F49);
     Uint8List publicKey = data.getValue(0x86);
     await _setData(
         keySlot.fingerprint,
         Uint8List.fromList(PGPUtils.calculateFingerprint(
-            BigInt.parse(hex.encode(publicKey), radix: 16), curve)));
+            BigInt.parse(hex.encode(publicKey), radix: 16), curve)),
+        verify: _verifyCommand(pw3_83, _pinProvider.adminPin));
     timestamp ??= DateTime.now().millisecondsSinceEpoch;
     var timestampBytes = ByteData(4)..setInt32(0, timestamp);
-    await _setData(keySlot.genTime, timestampBytes.buffer.asUint8List());
+    await _setData(keySlot.genTime, timestampBytes.buffer.asUint8List(),
+        verify: _verifyCommand(pw3_83, _pinProvider.adminPin));
     return publicKey;
   }
 
@@ -87,7 +92,8 @@ class YubikitOpenPGP {
         Instruction.performSecurityOperation,
         0x9E,
         0x9A,
-        Uint8List.fromList(digest.bytes));
+        Uint8List.fromList(digest.bytes),
+        verify: _verifyCommand(pw1_81, _pinProvider.pin));
     return response;
   }
 
@@ -101,7 +107,8 @@ class YubikitOpenPGP {
         Instruction.performSecurityOperation,
         0x80,
         0x86,
-        Uint8List.fromList(cipherDo));
+        Uint8List.fromList(cipherDo),
+        verify: _verifyCommand(pw1_82, _pinProvider.pin));
     return response;
   }
 
@@ -162,28 +169,16 @@ class YubikitOpenPGP {
         0x00, Uint8List.fromList([pw1Tries, pw2Tries, pw3Tries]));
   }
 
-  Future<KdfData> _getKdf() async {
-    Uint8List data = await _getData(DataObject.kdf.value);
-    return KdfData.parse(data);
-  }
-
-  Future<void> _verify(int pw, String pin) async {
-    Iterable<int> actualPin = (await _getKdf()).process(pw, pin.codeUnits);
-    Uint8List response = await _smartCardInterface.sendApdu(0x00,
-        Instruction.verify, 0, pw, Uint8List.fromList(actualPin.toList()));
-    handleErrors(response);
-  }
-
-  Future<void> verifySignaturePin(String pin) async {
-    await _verify(pw1_81, pin);
-  }
-
-  Future<void> verifyPin(String pin) async {
-    await _verify(pw1_82, pin);
-  }
-
-  Future<void> verifyAdmin(String pin) async {
-    await _verify(pw3_83, pin);
+  List<int> _verifyCommand(int pw, String pin) {
+    final pinData = Uint8List.fromList(pin.codeUnits);
+    return Uint8List.fromList([
+          0x00,
+          Instruction.verify.value,
+          0,
+          pw,
+          pinData.lengthInBytes
+        ] +
+        pinData);
   }
 
   Future<void> reset() async {
@@ -249,9 +244,11 @@ class YubikitOpenPGP {
     return response;
   }
 
-  Future<Uint8List> _setData(int cmd, Uint8List data) async {
+  Future<Uint8List> _setData(int cmd, Uint8List data,
+      {List<int>? verify}) async {
     Uint8List response = await _smartCardInterface.sendApdu(
-        0x00, Instruction.putData, cmd >> 8, cmd & 0xFF, data);
+        0x00, Instruction.putData, cmd >> 8, cmd & 0xFF, data,
+        verify: verify);
     return response;
   }
 

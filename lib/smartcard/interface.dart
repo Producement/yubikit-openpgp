@@ -3,8 +3,7 @@ import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:convert/convert.dart';
-
-import 'instruction.dart';
+import 'package:yubikit_openpgp/yubikit_openpgp.dart';
 
 class SmartCardInterface {
   const SmartCardInterface();
@@ -12,7 +11,15 @@ class SmartCardInterface {
 // 90 00 OK
   static const _successfulEnd = [144, 0, 10, 79, 75, 10];
 
-  Future<Uint8List> sendCommand(List<int> input) async {
+  Future<Uint8List> sendCommand(Application application, List<int> input,
+      {List<int>? verify}) async {
+    if (verify != null) {
+      await _sendCommand(verify);
+    }
+    return await _sendCommand(input);
+  }
+
+  Future<Uint8List> _sendCommand(List<int> input) async {
     String command = 'scd apdu ${_hexWithSpaces(input)}';
     var processResult =
         await Process.run('gpg-connect-agent', [command], stdoutEncoding: null);
@@ -40,16 +47,19 @@ class SmartCardInterface {
   }
 
   Future<Uint8List> sendApdu(
-      int cla, Instruction instruction, int p1, int p2, Uint8List data) async {
+      int cla, Instruction instruction, int p1, int p2, Uint8List data,
+      {List<int>? verify}) async {
     if (data.lengthInBytes > 0) {
       Uint8List command = Uint8List.fromList(
           [cla, instruction.value, p1, p2, data.lengthInBytes] + data);
       return sendCommand(
+        Application.openpgp,
         command,
+        verify: verify,
       );
     } else {
       Uint8List command = Uint8List.fromList([cla, instruction.value, p1, p2]);
-      return sendCommand(command);
+      return sendCommand(Application.openpgp, command, verify: verify);
     }
   }
 }

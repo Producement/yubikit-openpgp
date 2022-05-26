@@ -1,3 +1,8 @@
+## 1.0.4
+
+- Created pin provider for easier pin management.
+- Verify pin automatically.
+
 ## 1.0.3
 
 - Stricter analysis options.
