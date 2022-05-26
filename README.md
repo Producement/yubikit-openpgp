@@ -1,2 +1,3 @@
-A sample command-line application with an entrypoint in `bin/`, library code
-in `lib/`, and example unit test in `test/`.
+# Yubikit OpenPGP
+
+Helper module for projects like [Yubikit Flutter](https://github.com/Producement/yubikit_flutter) and [age Yubikey PGP](https://github.com/Producement/age-yubikey-pgp) that makes it easier to communicate with Yubikeys (and possible other security tokens) using the OpenPGP smartcard standard.

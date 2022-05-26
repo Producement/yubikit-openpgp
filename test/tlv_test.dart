@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 import 'package:yubikit_openpgp/tlv.dart';
 
 void main() {
-  test("Parses simple TLV value", () async {
+  test('Parses simple TLV value', () async {
     Uint8List data = Uint8List.fromList([0x60, 0x02, 0x01, 0x03]);
     Tlv tlv = Tlv.parse(data, offset: 0);
     expect(tlv.tag, equals(0x60));
@@ -13,13 +13,13 @@ void main() {
     expect(tlv.length, equals(0x02));
   });
 
-  test("Parses simple TLV data value as map", () async {
+  test('Parses simple TLV data value as map', () async {
     Uint8List data = Uint8List.fromList([0x60, 0x02, 0x01, 0x03]);
     TlvData tlvData = TlvData.parse(data);
     expect(tlvData.getValue(0x60), equals(Uint8List.fromList([0x01, 0x03])));
   });
 
-  test("Parses multiple TLV values", () async {
+  test('Parses multiple TLV values', () async {
     Uint8List data = Uint8List.fromList(
         [0x60, 0x02, 0x01, 0x03, 0x61, 0x01, 0x01, 0x62, 0x00]);
     TlvData tlvData = TlvData.parse(data);

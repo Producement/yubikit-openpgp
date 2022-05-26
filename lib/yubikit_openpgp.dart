@@ -15,9 +15,15 @@ import 'tlv.dart';
 import 'touch_mode.dart';
 import 'utils.dart';
 
-class OpenPGPInterface {
-  static const String defaultPin = "123456";
-  static const String defaultAdminPin = "12345678";
+export 'curve.dart';
+export 'keyslot.dart';
+export 'smartcard/application.dart';
+export 'smartcard/instruction.dart';
+export 'touch_mode.dart';
+
+class YubikitOpenPGP {
+  static const String defaultPin = '123456';
+  static const String defaultAdminPin = '12345678';
 
   static const int pw1_81 = 0x81;
   static const int pw1_82 = 0x82;
@@ -30,7 +36,7 @@ class OpenPGPInterface {
     return getApplicationVersion();
   }
 
-  const OpenPGPInterface(this._smartCardInterface);
+  const YubikitOpenPGP(this._smartCardInterface);
 
   Uint8List _formatECAttributes(KeySlot keySlot, ECCurve curve) {
     late int algorithm;
@@ -48,7 +54,7 @@ class OpenPGPInterface {
       [int? timestamp]) async {
     requireVersion(5, 2, 0);
     Uint8List attributes = _formatECAttributes(keySlot, curve);
-    _setData(keySlot.keyId, attributes);
+    await _setData(keySlot.keyId, attributes);
     Uint8List response = await _smartCardInterface.sendApdu(
         0x00, Instruction.generateAsym, 0x80, 0x00, keySlot.crt);
     TlvData data = TlvData.parse(response).get(0x7F49);
@@ -102,7 +108,7 @@ class OpenPGPInterface {
   Future<TouchMode> getTouch(KeySlot keySlot) async {
     List<TouchMode> supported = await getSupportedTouchModes();
     if (supported.isEmpty) {
-      throw Exception("Touch policy is available on YubiKey 4 or later.");
+      throw Exception('Touch policy is available on YubiKey 4 or later.');
     }
     Uint8List data = await _getData(keySlot.uif);
     return TouchModeValues.parse(data);
@@ -113,10 +119,10 @@ class OpenPGPInterface {
   Future<void> setTouch(KeySlot keySlot, TouchMode mode) async {
     List<TouchMode> supported = await getSupportedTouchModes();
     if (supported.isEmpty) {
-      throw Exception("Touch policy is available on YubiKey 4 or later.");
+      throw Exception('Touch policy is available on YubiKey 4 or later.');
     }
     if (!supported.contains(mode)) {
-      throw Exception("Touch policy not available on this device.");
+      throw Exception('Touch policy not available on this device.');
     }
     await _setData(
         keySlot.uif, Uint8List.fromList([mode.value, _touchMethodButton]));
@@ -145,12 +151,12 @@ class OpenPGPInterface {
     if (appVersion > const Tuple3(1, 0, 0) &&
         appVersion < const Tuple3(1, 0, 7)) {
       throw Exception(
-          "Setting PIN retry counters requires version 1.0.7 or later.");
+          'Setting PIN retry counters requires version 1.0.7 or later.');
     }
     if (appVersion > const Tuple3(4, 0, 0) &&
         appVersion < const Tuple3(4, 3, 1)) {
       throw Exception(
-          "Setting PIN retry counters requires version 4.3.1 or later.");
+          'Setting PIN retry counters requires version 4.3.1 or later.');
     }
     await _smartCardInterface.sendApdu(0x00, Instruction.setPinRetries, 0x00,
         0x00, Uint8List.fromList([pw1Tries, pw2Tries, pw3Tries]));
@@ -183,7 +189,7 @@ class OpenPGPInterface {
   Future<void> reset() async {
     if (await applicationVersion < const Tuple3(1, 0, 6)) {
       throw Exception(
-          "Resetting OpenPGP data requires version 1.0.6 or later.");
+          'Resetting OpenPGP data requires version 1.0.6 or later.');
     }
     await _blockPins();
     await _smartCardInterface.sendApdu(
@@ -218,7 +224,7 @@ class OpenPGPInterface {
   void requireVersion(int first, int second, int third) async {
     final appVersion = await applicationVersion;
     if (appVersion < Tuple3(first, second, third)) {
-      throw Exception("Application version $appVersion not supported!");
+      throw Exception('Application version $appVersion not supported!');
     }
   }
 
@@ -252,7 +258,7 @@ class OpenPGPInterface {
   void handleErrors(Uint8List response) {
     //TODO: improve error handling
     if (response.isNotEmpty && response[0] != 0x90) {
-      throw Exception("Error: ${hex.encode(response)}");
+      throw Exception('Error: ${hex.encode(response)}');
     }
   }
 }

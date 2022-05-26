@@ -10,11 +10,11 @@ extension KeySlotValues on KeySlot {
   String get value {
     switch (this) {
       case KeySlot.signature:
-        return "SIGNATURE";
+        return 'SIGNATURE';
       case KeySlot.encryption:
-        return "ENCRYPTION";
+        return 'ENCRYPTION';
       case KeySlot.authentication:
-        return "AUTHENTICATION";
+        return 'AUTHENTICATION';
     }
   }
 

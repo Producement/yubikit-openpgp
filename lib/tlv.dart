@@ -43,7 +43,7 @@ class Tlv {
 
   @override
   String toString() {
-    return "Tlv(tag: ${tag.toRadixString(16)}, offset: $offset, length: $length, end: $end)";
+    return 'Tlv(tag: ${tag.toRadixString(16)}, offset: $offset, length: $length, end: $end)';
   }
 }
 
@@ -78,6 +78,6 @@ class TlvData {
 
   @override
   String toString() {
-    return "TlvData(tlvData: $tlvData, data: $data)";
+    return 'TlvData(tlvData: $tlvData, data: $data)';
   }
 }

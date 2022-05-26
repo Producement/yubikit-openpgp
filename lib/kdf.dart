@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
-import 'interface.dart';
+import 'yubikit_openpgp.dart';
 
 enum KdfAlgorithm {
   none,
@@ -61,7 +61,7 @@ class KdfData {
           Uint8List.fromList([]));
     }
     //TODO: support other KDF algorithms
-    throw Exception("KDF is not implemented properly yet.");
+    throw Exception('KDF is not implemented properly yet.');
   }
 
   Iterable<int> process(int pw, Iterable<int> pin) {
@@ -69,14 +69,14 @@ class KdfData {
       return pin;
     } else if (algorithm == KdfAlgorithm.kdfItersaltedS2k) {
       late Iterable<int> salt;
-      if (pw == OpenPGPInterface.pw1_81) {
+      if (pw == YubikitOpenPGP.pw1_81) {
         salt = pw1SaltBytes!;
-      } else if (pw == OpenPGPInterface.pw3_83) {
+      } else if (pw == YubikitOpenPGP.pw3_83) {
         salt = pw1SaltBytes ?? pw3SaltBytes;
       }
       return kdfItersaltedS2k(pin, salt);
     }
-    throw Exception("Algorithm not supported!");
+    throw Exception('Algorithm not supported!');
   }
 
   Iterable<int> kdfItersaltedS2k(Iterable<int> pin, Iterable<int> salt) {
