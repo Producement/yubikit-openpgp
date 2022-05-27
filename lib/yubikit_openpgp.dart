@@ -3,14 +3,13 @@ import 'dart:typed_data';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:tuple/tuple.dart';
-import 'package:yubikit_openpgp/smartcard/interface.dart';
-import 'package:yubikit_openpgp/smartcard/pin_provider.dart';
 
 import 'curve.dart';
 import 'data_object.dart';
 import 'keyslot.dart';
-import 'smartcard/application.dart';
 import 'smartcard/instruction.dart';
+import 'smartcard/pin_provider.dart';
+import 'smartcard/interface.dart';
 import 'tlv.dart';
 import 'touch_mode.dart';
 import 'utils.dart';
@@ -18,7 +17,10 @@ import 'utils.dart';
 export 'curve.dart';
 export 'keyslot.dart';
 export 'smartcard/application.dart';
+export 'smartcard/interface.dart';
 export 'smartcard/instruction.dart';
+export 'smartcard/pin_provider.dart';
+export 'smartcard/exception.dart';
 export 'touch_mode.dart';
 
 class YubikitOpenPGP {
@@ -31,11 +33,6 @@ class YubikitOpenPGP {
 
   final SmartCardInterface _smartCardInterface;
   final PinProvider _pinProvider;
-  final Application application = Application.openpgp;
-
-  Future<Tuple3> get applicationVersion async {
-    return getApplicationVersion();
-  }
 
   const YubikitOpenPGP(this._smartCardInterface, this._pinProvider);
 
@@ -53,7 +50,6 @@ class YubikitOpenPGP {
 
   Future<Uint8List> generateECKey(KeySlot keySlot, ECCurve curve,
       [int? timestamp]) async {
-    requireVersion(5, 2, 0);
     Uint8List attributes = _formatECAttributes(keySlot, curve);
     await _setData(keySlot.keyId, attributes,
         verify: _verifyCommand(pw3_83, _pinProvider.adminPin));
@@ -113,10 +109,6 @@ class YubikitOpenPGP {
   }
 
   Future<TouchMode> getTouch(KeySlot keySlot) async {
-    List<TouchMode> supported = await getSupportedTouchModes();
-    if (supported.isEmpty) {
-      throw Exception('Touch policy is available on YubiKey 4 or later.');
-    }
     Uint8List data = await _getData(keySlot.uif);
     return TouchModeValues.parse(data);
   }
@@ -124,13 +116,6 @@ class YubikitOpenPGP {
   static const int _touchMethodButton = 0x20;
 
   Future<void> setTouch(KeySlot keySlot, TouchMode mode) async {
-    List<TouchMode> supported = await getSupportedTouchModes();
-    if (supported.isEmpty) {
-      throw Exception('Touch policy is available on YubiKey 4 or later.');
-    }
-    if (!supported.contains(mode)) {
-      throw Exception('Touch policy not available on this device.');
-    }
     await _setData(
         keySlot.uif, Uint8List.fromList([mode.value, _touchMethodButton]));
   }
@@ -154,17 +139,6 @@ class YubikitOpenPGP {
   }
 
   Future<void> setPinRetries(int pw1Tries, int pw2Tries, int pw3Tries) async {
-    final appVersion = await applicationVersion;
-    if (appVersion > const Tuple3(1, 0, 0) &&
-        appVersion < const Tuple3(1, 0, 7)) {
-      throw Exception(
-          'Setting PIN retry counters requires version 1.0.7 or later.');
-    }
-    if (appVersion > const Tuple3(4, 0, 0) &&
-        appVersion < const Tuple3(4, 3, 1)) {
-      throw Exception(
-          'Setting PIN retry counters requires version 4.3.1 or later.');
-    }
     await _smartCardInterface.sendApdu(0x00, Instruction.setPinRetries, 0x00,
         0x00, Uint8List.fromList([pw1Tries, pw2Tries, pw3Tries]));
   }
@@ -182,10 +156,6 @@ class YubikitOpenPGP {
   }
 
   Future<void> reset() async {
-    if (await applicationVersion < const Tuple3(1, 0, 6)) {
-      throw Exception(
-          'Resetting OpenPGP data requires version 1.0.6 or later.');
-    }
     await _blockPins();
     await _smartCardInterface.sendApdu(
         0x00, Instruction.terminate, 0, 0, Uint8List.fromList([]));
@@ -216,28 +186,6 @@ class YubikitOpenPGP {
     }
   }
 
-  void requireVersion(int first, int second, int third) async {
-    final appVersion = await applicationVersion;
-    if (appVersion < Tuple3(first, second, third)) {
-      throw Exception('Application version $appVersion not supported!');
-    }
-  }
-
-  Future<List<TouchMode>> getSupportedTouchModes() async {
-    final appVersion = await applicationVersion;
-    if (appVersion < const Tuple3(4, 2, 0)) {
-      return [];
-    }
-    if (appVersion < const Tuple3(5, 2, 1)) {
-      return [TouchMode.on, TouchMode.off, TouchMode.fixed];
-    }
-    return TouchMode.values;
-  }
-
-  Future<bool> supportsAttestation() async {
-    return !(await applicationVersion < const Tuple3(5, 2, 1));
-  }
-
   Future<Uint8List> _getData(int cmd) async {
     Uint8List response = await _smartCardInterface.sendApdu(0x00,
         Instruction.getData, cmd >> 8, cmd & 0xFF, Uint8List.fromList([]));
@@ -250,13 +198,6 @@ class YubikitOpenPGP {
         0x00, Instruction.putData, cmd >> 8, cmd & 0xFF, data,
         verify: verify);
     return response;
-  }
-
-  void handleErrors(Uint8List response) {
-    //TODO: improve error handling
-    if (response.isNotEmpty && response[0] != 0x90) {
-      throw Exception('Error: ${hex.encode(response)}');
-    }
   }
 }
 

@@ -1,3 +1,7 @@
+## 1.0.5
+
+- Better error handling.
+
 ## 1.0.4
 
 - Created pin provider for easier pin management.

@@ -29,7 +29,7 @@ class SmartCardInterface {
         _successfulEnd)) {
       final errorCode =
           result.skip(result.length - _successfulEnd.length).take(2).toList();
-      throw Exception('Error from smartcard ${_hexWithSpaces(errorCode)}');
+      throw SmartCardException(errorCode[0], errorCode[1]);
     }
     final processedResult = result.skip(2).take(result.length - 8).toList();
     return Uint8List.fromList(processedResult);

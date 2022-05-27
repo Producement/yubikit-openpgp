@@ -1,6 +1,4 @@
 import 'package:convert/convert.dart';
-import 'package:yubikit_openpgp/smartcard/interface.dart';
-import 'package:yubikit_openpgp/smartcard/pin_provider.dart';
 import 'package:yubikit_openpgp/yubikit_openpgp.dart';
 
 void main(List<String> arguments) async {
@@ -9,7 +7,7 @@ void main(List<String> arguments) async {
   final pinProvider = PinProvider();
   final openPGPInterface = YubikitOpenPGP(smartCardInterface, pinProvider);
 
-  final appVersion = await openPGPInterface.applicationVersion;
+  final appVersion = await openPGPInterface.getApplicationVersion();
   print('Application version: $appVersion');
 
   final ecPublicKey = await openPGPInterface.getECPublicKey(KeySlot.encryption);
@@ -18,5 +16,9 @@ void main(List<String> arguments) async {
   if (ecPublicKey != null) {
     final sharedSecret = await openPGPInterface.ecSharedSecret(ecPublicKey);
     print('Shared secret: ${hex.encode(sharedSecret)}');
+  } else {
+    final ecPublicKey = await openPGPInterface.generateECKey(
+        KeySlot.encryption, ECCurve.x25519);
+    print('Encryption public key: ${hex.encode(ecPublicKey)}');
   }
 }
