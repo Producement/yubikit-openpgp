@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 enum TouchMode {
   off,
   on,
@@ -9,7 +7,7 @@ enum TouchMode {
 }
 
 extension TouchModeValues on TouchMode {
-  static TouchMode parse(Uint8List data) {
+  static TouchMode parse(List<int> data) {
     late TouchMode actualMode;
     for (TouchMode mode in TouchMode.values) {
       if (mode.value == data[0]) {

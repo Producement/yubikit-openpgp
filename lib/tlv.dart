@@ -49,11 +49,11 @@ class Tlv {
 
 class TlvData {
   final Map<int, Tlv> tlvData;
-  final Uint8List data;
+  final List<int> data;
 
   const TlvData(this.tlvData, this.data);
 
-  Uint8List getValue(int tag) {
+  List<int> getValue(int tag) {
     Tlv? tlv = tlvData[tag];
     if (tlv != null) {
       return data.sublist(tlv.offset, tlv.end);
@@ -65,7 +65,7 @@ class TlvData {
     return TlvData.parse(getValue(tag));
   }
 
-  factory TlvData.parse(Uint8List data) {
+  factory TlvData.parse(List<int> data) {
     Map<int, Tlv> parsedData = {};
     int offset = 0;
     while (offset < data.length) {

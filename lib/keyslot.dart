@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 enum KeySlot {
   signature,
   encryption,
@@ -62,14 +60,14 @@ extension KeySlotValues on KeySlot {
     }
   }
 
-  Uint8List get crt {
+  List<int> get crt {
     switch (this) {
       case KeySlot.signature:
-        return Uint8List.fromList([0xB6, 0x00]);
+        return [0xB6, 0x00];
       case KeySlot.encryption:
-        return Uint8List.fromList([0xB8, 0x00]);
+        return [0xB8, 0x00];
       case KeySlot.authentication:
-        return Uint8List.fromList([0xA4, 0x00]);
+        return [0xA4, 0x00];
     }
   }
 }

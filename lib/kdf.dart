@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:crypto/crypto.dart';
 
 import 'yubikit_openpgp.dart';
@@ -55,10 +53,9 @@ class KdfData {
   const KdfData(this.algorithm, this.hashAlgorithm, this.iterationCount,
       this.pw1SaltBytes, this.pw3SaltBytes);
 
-  factory KdfData.parse(Uint8List data) {
+  factory KdfData.parse(List<int> data) {
     if (data[0] == 0x81 && data[1] == 0x01 && data[2] == 0x00) {
-      return KdfData(KdfAlgorithm.none, HashAlgorithm.sha256, 0, null,
-          Uint8List.fromList([]));
+      return KdfData(KdfAlgorithm.none, HashAlgorithm.sha256, 0, null, []);
     }
     //TODO: support other KDF algorithms
     throw Exception('KDF is not implemented properly yet.');
@@ -90,6 +87,6 @@ class KdfData {
       input.addAll(data);
     }
     input.addAll(trailing);
-    return Uint8List.fromList(digest.convert(input).bytes);
+    return digest.convert(input).bytes;
   }
 }

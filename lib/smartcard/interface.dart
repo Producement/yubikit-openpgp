@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:convert/convert.dart';
@@ -11,7 +10,7 @@ class SmartCardInterface {
 // 90 00 OK
   static const _successfulEnd = [144, 0, 10, 79, 75, 10];
 
-  Future<Uint8List> sendCommand(Application application, List<int> input,
+  Future<List<int>> sendCommand(Application application, List<int> input,
       {List<int>? verify}) async {
     if (verify != null) {
       await _sendCommand(verify);
@@ -19,7 +18,7 @@ class SmartCardInterface {
     return await _sendCommand(input);
   }
 
-  Future<Uint8List> _sendCommand(List<int> input) async {
+  Future<List<int>> _sendCommand(List<int> input) async {
     String command = 'scd apdu ${_hexWithSpaces(input)}';
     var processResult =
         await Process.run('gpg-connect-agent', [command], stdoutEncoding: null);
@@ -32,7 +31,7 @@ class SmartCardInterface {
       throw SmartCardException(errorCode[0], errorCode[1]);
     }
     final processedResult = result.skip(2).take(result.length - 8).toList();
-    return Uint8List.fromList(processedResult);
+    return processedResult;
   }
 
   String _hexWithSpaces(List<int> input) {
@@ -46,20 +45,19 @@ class SmartCardInterface {
     return command.substring(0, command.length - 1);
   }
 
-  Future<Uint8List> sendApdu(
-      int cla, Instruction instruction, int p1, int p2, Uint8List data,
+  Future<List<int>> sendApdu(
+      int cla, Instruction instruction, int p1, int p2, List<int> data,
       {List<int>? verify}) async {
-    if (data.lengthInBytes > 0) {
-      Uint8List command = Uint8List.fromList(
-          [cla, instruction.value, p1, p2, data.lengthInBytes] + data);
+    if (data.isNotEmpty) {
+      final command = [cla, instruction.value, p1, p2, data.length] + data;
       return sendCommand(
         Application.openpgp,
         command,
         verify: verify,
       );
     } else {
-      Uint8List command = Uint8List.fromList([cla, instruction.value, p1, p2]);
-      return sendCommand(Application.openpgp, command, verify: verify);
+      return sendCommand(Application.openpgp, [cla, instruction.value, p1, p2],
+          verify: verify);
     }
   }
 }

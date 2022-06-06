@@ -1,3 +1,6 @@
+## 1.0.6
+
+- Use List<int> for better compatibility with crypto libraries.
 ## 1.0.5
 
 - Better error handling.
