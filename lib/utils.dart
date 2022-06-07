@@ -6,14 +6,14 @@ import 'package:crypto/crypto.dart';
 import 'curve.dart';
 
 class PGPUtils {
-  static List<int> calculateFingerprint(BigInt publicKey, ECCurve curve,
+  static Uint8List calculateFingerprint(BigInt publicKey, ECCurve curve,
       [int? timestamp]) {
-    return sha1
+    return Uint8List.fromList(sha1
         .convert(buildPublicKeyPacket(publicKey, curve, timestamp, 0x99))
-        .bytes;
+        .bytes);
   }
 
-  static List<int> buildPublicKeyPacket(BigInt publicKey, ECCurve curve,
+  static Uint8List buildPublicKeyPacket(BigInt publicKey, ECCurve curve,
       [int? timestamp, int? type]) {
     List<int> encoded = _timestampAndVersion(0x04, timestamp) +
         _curve(curve) +
@@ -22,10 +22,10 @@ class PGPUtils {
     var lengthEncoded = type == 0x98
         ? [type, encoded.length]
         : [type, encoded.length >> 8, encoded.length & 0xFF];
-    return lengthEncoded + encoded;
+    return Uint8List.fromList(lengthEncoded + encoded);
   }
 
-  static List<int> buildSecretKeyPacket(BigInt secretKey, ECCurve curve,
+  static Uint8List buildSecretKeyPacket(BigInt secretKey, ECCurve curve,
       [int? timestamp, int? type]) {
     List<int> encoded = _timestampAndVersion(0x04, timestamp) +
         _curve(curve) +
@@ -34,22 +34,22 @@ class PGPUtils {
     var lengthEncoded = type == 0x98
         ? [type, encoded.length]
         : [type, encoded.length >> 8, encoded.length & 0xFF];
-    return lengthEncoded + encoded;
+    return Uint8List.fromList(lengthEncoded + encoded);
   }
 
-  static List<int> _timestampAndVersion(int version, int? timestamp) {
+  static Uint8List _timestampAndVersion(int version, int? timestamp) {
     timestamp ??= (DateTime.now().millisecondsSinceEpoch / 1000).round();
     var timestampBytes = ByteData(4)..setInt32(0, timestamp);
-    return [version] + timestampBytes.buffer.asUint8List();
+    return Uint8List.fromList([version] + timestampBytes.buffer.asUint8List());
   }
 
-  static List<int> _curve(ECCurve curve) {
-    return [curve.algorithm, curve.oid.length] + curve.oid;
+  static Uint8List _curve(ECCurve curve) {
+    return Uint8List.fromList([curve.algorithm, curve.oid.length] + curve.oid);
   }
 
-  static List<int> _keyMaterial(BigInt key) {
-    return Uint8List.fromList([key.bitLength >> 8, key.bitLength & 0xFF]) +
-        _bigIntToUint8List(key);
+  static Uint8List _keyMaterial(BigInt key) {
+    return Uint8List.fromList(
+        [key.bitLength >> 8, key.bitLength & 0xFF] + _bigIntToUint8List(key));
   }
 
   static String armor(List<int> packet) {

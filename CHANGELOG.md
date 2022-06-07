@@ -1,3 +1,7 @@
+## 1.0.7
+
+- Use Uint8List as a return type.
+
 ## 1.0.6
 
 - Use List<int> for better compatibility with crypto libraries.

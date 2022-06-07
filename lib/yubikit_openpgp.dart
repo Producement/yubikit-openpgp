@@ -48,7 +48,7 @@ class YubikitOpenPGP {
     return [algorithm].followedBy(curve.oid).toList();
   }
 
-  Future<List<int>> generateECKey(KeySlot keySlot, ECCurve curve,
+  Future<Uint8List> generateECKey(KeySlot keySlot, ECCurve curve,
       [int? timestamp]) async {
     final attributes = _formatECAttributes(keySlot, curve);
     await _setData(keySlot.keyId, attributes,
@@ -70,7 +70,7 @@ class YubikitOpenPGP {
     return publicKey;
   }
 
-  Future<List<int>?> getECPublicKey(KeySlot keySlot) async {
+  Future<Uint8List?> getECPublicKey(KeySlot keySlot) async {
     try {
       final response = await _smartCardInterface.sendApdu(
           0x00, Instruction.generateAsym, 0x81, 0x00, keySlot.crt);
@@ -81,7 +81,7 @@ class YubikitOpenPGP {
     }
   }
 
-  Future<List<int>> sign(List<int> data) async {
+  Future<Uint8List> sign(List<int> data) async {
     final digest = sha512.convert(data);
     final response = await _smartCardInterface.sendApdu(
         0x00, Instruction.performSecurityOperation, 0x9E, 0x9A, digest.bytes,
@@ -89,7 +89,7 @@ class YubikitOpenPGP {
     return response;
   }
 
-  Future<List<int>> ecSharedSecret(List<int> publicKey) async {
+  Future<Uint8List> ecSharedSecret(List<int> publicKey) async {
     final externalPublicKey = [0x86, publicKey.length] + publicKey;
     final publicKeyDo =
         [0x7F, 0x49, externalPublicKey.length] + externalPublicKey;

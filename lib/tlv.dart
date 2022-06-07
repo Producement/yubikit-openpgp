@@ -53,10 +53,10 @@ class TlvData {
 
   const TlvData(this.tlvData, this.data);
 
-  List<int> getValue(int tag) {
+  Uint8List getValue(int tag) {
     Tlv? tlv = tlvData[tag];
     if (tlv != null) {
-      return data.sublist(tlv.offset, tlv.end);
+      return Uint8List.fromList(data.sublist(tlv.offset, tlv.end));
     }
     return Uint8List(0);
   }
