@@ -19,21 +19,28 @@ class SmartCardInterface {
     return await _sendCommand(input);
   }
 
-  Future<Uint8List> _sendCommand(List<int> input) async {
+  Future<Uint8List> _sendCommand(List<int> input, [List<int> accumulatingBytes = const []]) async {
     String command = 'scd apdu ${_hexWithSpaces(input)}';
     var processResult =
         await Process.run('gpg-connect-agent', [command], stdoutEncoding: null);
     List<int> result = processResult.stdout;
     Function eq = const ListEquality().equals;
-    if (!eq(result.skip(result.length - _successfulEnd.length).toList(),
-        _successfulEnd)) {
+    final resultStatus =
+        result.skip(result.length - _successfulEnd.length).toList();
+    final isLongResponse = (resultStatus[0] == 97);
+    if (isLongResponse) {
+      final processedResult = resultContent(result);
+      return _sendCommand([0x00, Instruction.sendRemaining.value, 0x00, 0x00, resultStatus[1]], accumulatingBytes + processedResult);
+    } else if (!eq(resultStatus, _successfulEnd)) {
       final errorCode =
           result.skip(result.length - _successfulEnd.length).take(2).toList();
       throw SmartCardException(errorCode[0], errorCode[1]);
     }
-    final processedResult = result.skip(2).take(result.length - 8).toList();
-    return Uint8List.fromList(processedResult);
+    final processedResult = resultContent(result);
+    return Uint8List.fromList(accumulatingBytes + processedResult);
   }
+
+  List<int> resultContent(List<int> result) => result.skip(2).take(result.length - 8).toList();
 
   String _hexWithSpaces(List<int> input) {
     if (input.isEmpty) {
