@@ -24,7 +24,7 @@ void main() {
   test('calculates fingerprint', () async {
     var pubKey =
         '40189452D84165788AE29A0CD494D2C7C01EECA5333B5426FEF6D52CD206C91AAE';
-    var fingerprint = PGPUtils.calculateFingerprint(
+    var fingerprint = PGPUtils.calculateECFingerprint(
         BigInt.parse(pubKey, radix: 16), ECCurve.ed25519, 1652084583);
     print(_bigIntToUint8List(BigInt.parse(
         '7480317426394696936448527343812174929534157707887635210617056164323067967739714')));
@@ -41,7 +41,7 @@ void main() {
                 1000)
             .round();
     expect(
-        PGPUtils.buildPublicKeyPacket(
+        PGPUtils.buildECPublicKeyPacket(
             pubKeyAsBigInt, ECCurve.ed25519, timestamp),
         equals(hex.decode(
             '9833046273cd9616092b06010401da470f010107401785a8be6b7d9bfe092e3a1172386c98a498298a44644fbd90ae8fb9c6d31ed8')));
@@ -55,5 +55,13 @@ void main() {
 yDgBO22WxBHv7O8X7O/jygAEzol56iUKiXmV+XmpCtmpqQUKiQrFqclFqUDBovzSvBSFjNSiVHsuAA==
 =njUN
 -----END PGP PUBLIC KEY BLOCK-----'''));
+  });
+
+  test('percent unescaping', () async {
+    expect(PGPUtils.percentUnescape([]), equals([]));
+    expect(PGPUtils.percentUnescape([0x10, 0x20]), equals([0x10, 0x20]));
+    expect(PGPUtils.percentUnescape([0x25, 0x30, 0x41]), equals([0x0A]));
+    expect(PGPUtils.percentUnescape([0xFF, 0x25, 0x32, 0x35, 0x00]),
+        equals([0xFF, 0x25, 0x00]));
   });
 }

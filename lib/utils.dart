@@ -1,40 +1,49 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 
 import 'curve.dart';
 
 class PGPUtils {
-  static Uint8List calculateFingerprint(BigInt publicKey, ECCurve curve,
+  static Uint8List calculateECFingerprint(BigInt publicKey, ECCurve curve,
       [int? timestamp]) {
     return Uint8List.fromList(sha1
-        .convert(buildPublicKeyPacket(publicKey, curve, timestamp, 0x99))
+        .convert(buildECPublicKeyPacket(publicKey, curve, timestamp, 0x99))
         .bytes);
   }
 
-  static Uint8List buildPublicKeyPacket(BigInt publicKey, ECCurve curve,
+  static Uint8List calculateRSAFingerprint(
+      Uint8List modulus, Uint8List exponent,
+      [int? timestamp]) {
+    return Uint8List.fromList(sha1
+        .convert(buildRSAPublicKeyPacket(modulus, exponent, timestamp, 0x99))
+        .bytes);
+  }
+
+  static Uint8List buildRSAPublicKeyPacket(
+      Uint8List modulus, Uint8List exponent,
+      [int? timestamp, int? type]) {
+    List<int> encoded =
+        _timestampAndVersion(0x04, timestamp) + _mpi(modulus) + _mpi(exponent);
+    type ??= encoded.length >> 8 == 0 ? 0x98 : 0x99;
+    return Uint8List.fromList(
+        [type] + (type == 0x99 ? _mpi(encoded) : [encoded.length] + encoded));
+  }
+
+  static List<int> _mpi(List<int> number) {
+    return [number.length >> 8, number.length & 0xFF] + number;
+  }
+
+  static Uint8List buildECPublicKeyPacket(BigInt publicKey, ECCurve curve,
       [int? timestamp, int? type]) {
     List<int> encoded = _timestampAndVersion(0x04, timestamp) +
         _curve(curve) +
         _keyMaterial(publicKey);
     type ??= encoded.length >> 8 == 0 ? 0x98 : 0x99;
-    var lengthEncoded = type == 0x98
-        ? [type, encoded.length]
-        : [type, encoded.length >> 8, encoded.length & 0xFF];
-    return Uint8List.fromList(lengthEncoded + encoded);
-  }
-
-  static Uint8List buildSecretKeyPacket(BigInt secretKey, ECCurve curve,
-      [int? timestamp, int? type]) {
-    List<int> encoded = _timestampAndVersion(0x04, timestamp) +
-        _curve(curve) +
-        _keyMaterial(secretKey);
-    type ??= encoded.length >> 8 == 0 ? 0x98 : 0x99;
-    var lengthEncoded = type == 0x98
-        ? [type, encoded.length]
-        : [type, encoded.length >> 8, encoded.length & 0xFF];
-    return Uint8List.fromList(lengthEncoded + encoded);
+    return Uint8List.fromList(
+        [type] + (type == 0x99 ? _mpi(encoded) : [encoded.length] + encoded));
   }
 
   static Uint8List _timestampAndVersion(int version, int? timestamp) {
@@ -87,5 +96,41 @@ $content
     }
 
     return data;
+  }
+
+  static List<int> percentUnescape(List<int> result) {
+    final unescapedResult = <int>[];
+    result.forEachIndexed((index, element) {
+      if (index > 1 && result[index - 2] == 0x25) {
+        //Bactrack last two inserts
+        unescapedResult
+          ..removeLast()
+          ..removeLast();
+        unescapedResult.add(_hexCharPairToByte(
+            utf8.decode([result[index - 1], result[index]]), 0));
+      } else {
+        unescapedResult.add(element);
+      }
+    });
+    return unescapedResult;
+  }
+
+  static int _hexCharPairToByte(String s, int pos) {
+    int byte = 0;
+    for (int i = 0; i < 2; i++) {
+      var charCode = s.codeUnitAt(pos + i);
+      if (0x30 <= charCode && charCode <= 0x39) {
+        byte = byte * 16 + charCode - 0x30;
+      } else {
+        // Check ranges A-F (0x41-0x46) and a-f (0x61-0x66).
+        charCode |= 0x20;
+        if (0x61 <= charCode && charCode <= 0x66) {
+          byte = byte * 16 + charCode - 0x57;
+        } else {
+          throw ArgumentError('Invalid URL encoding');
+        }
+      }
+    }
+    return byte;
   }
 }

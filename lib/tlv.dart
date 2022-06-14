@@ -30,9 +30,9 @@ class Tlv {
     } else {
       if (length > 0x80) {
         int numberOfBytes = length - 0x80;
-        var blob = ByteData.sublistView(
+        final blob = ByteData.sublistView(
             Uint8List.fromList(data.sublist(offset, offset + numberOfBytes)));
-        length = blob.getInt32(0);
+        length = blob.getInt16(0);
         offset += numberOfBytes;
       }
       end = offset + length;
@@ -63,6 +63,10 @@ class TlvData {
 
   TlvData get(int tag) {
     return TlvData.parse(getValue(tag));
+  }
+
+  bool hasValue(int tag) {
+    return tlvData.containsKey(tag);
   }
 
   factory TlvData.parse(List<int> data) {

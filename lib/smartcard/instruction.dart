@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 enum Instruction {
   getData,
   getVersion,
@@ -43,6 +45,14 @@ extension InstructionValue on Instruction {
         return 0xA5;
       case Instruction.performSecurityOperation:
         return 0x2A;
+    }
+  }
+
+  Uint8List apdu(int cla, int p1, int p2, List<int> data) {
+    if (data.isNotEmpty) {
+      return Uint8List.fromList([cla, value, p1, p2, data.length] + data);
+    } else {
+      return Uint8List.fromList([cla, value, p1, p2]);
     }
   }
 }

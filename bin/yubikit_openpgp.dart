@@ -1,4 +1,5 @@
 import 'package:convert/convert.dart';
+import 'package:yubikit_openpgp/key_data.dart';
 import 'package:yubikit_openpgp/yubikit_openpgp.dart';
 
 void main(List<String> arguments) async {
@@ -7,18 +8,17 @@ void main(List<String> arguments) async {
   final pinProvider = PinProvider();
   final openPGPInterface = YubikitOpenPGP(smartCardInterface, pinProvider);
 
-  final appVersion = await openPGPInterface.getApplicationVersion();
-  print('Application version: $appVersion');
+  final publicKey = await openPGPInterface.getPublicKey(KeySlot.signature);
+  if (publicKey is ECKeyData) {
+    print('Encryption EC public key: ${hex.encode(publicKey.publicKey)}');
+  } else if (publicKey is RSAKeyData) {
+    print(
+        'Encryption RSA public key modulus: ${hex.encode(publicKey.modulus)} exponent: ${hex.encode(publicKey.exponent)}');
+  }
 
-  final ecPublicKey = await openPGPInterface.getECPublicKey(KeySlot.encryption);
-  print('Encryption public key: ${hex.encode(ecPublicKey ?? [])}');
-
-  if (ecPublicKey != null) {
-    final sharedSecret = await openPGPInterface.ecSharedSecret(ecPublicKey);
+  if (publicKey is ECKeyData) {
+    final sharedSecret =
+        await openPGPInterface.ecSharedSecret(publicKey.publicKey);
     print('Shared secret: ${hex.encode(sharedSecret)}');
-  } else {
-    final ecPublicKey = await openPGPInterface.generateECKey(
-        KeySlot.encryption, ECCurve.x25519);
-    print('Encryption public key: ${hex.encode(ecPublicKey)}');
   }
 }

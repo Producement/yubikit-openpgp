@@ -1,3 +1,9 @@
+## 1.0.8
+
+- Implement RSA support.
+- Fix an issue with TLV parsing.
+- Implement output escaping for gpg-connect-agent.
+
 ## 1.0.7
 
 - Use Uint8List as a return type.

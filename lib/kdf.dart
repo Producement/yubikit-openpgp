@@ -1,5 +1,6 @@
 import 'package:crypto/crypto.dart';
 
+import 'hash_algorithm.dart';
 import 'yubikit_openpgp.dart';
 
 enum KdfAlgorithm {
@@ -14,31 +15,6 @@ extension KdfAlgorithmValue on KdfAlgorithm {
         return 0x00;
       case KdfAlgorithm.kdfItersaltedS2k:
         return 0x03;
-    }
-  }
-}
-
-enum HashAlgorithm {
-  sha256,
-  sha512,
-}
-
-extension HashAlgorithmValue on HashAlgorithm {
-  int get value {
-    switch (this) {
-      case HashAlgorithm.sha256:
-        return 0x08;
-      case HashAlgorithm.sha512:
-        return 0x0A;
-    }
-  }
-
-  Hash get digest {
-    switch (this) {
-      case HashAlgorithm.sha256:
-        return sha256;
-      case HashAlgorithm.sha512:
-        return sha512;
     }
   }
 }
