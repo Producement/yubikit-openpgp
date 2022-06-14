@@ -2,15 +2,16 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
-import 'package:crypto/crypto.dart';
+import 'package:cryptography/dart.dart';
 
 import 'curve.dart';
 
 class PGPUtils {
+  static final sha1 = const DartSha1();
   static Uint8List calculateECFingerprint(BigInt publicKey, ECCurve curve,
       [int? timestamp]) {
     return Uint8List.fromList(sha1
-        .convert(buildECPublicKeyPacket(publicKey, curve, timestamp, 0x99))
+        .hashSync(buildECPublicKeyPacket(publicKey, curve, timestamp, 0x99))
         .bytes);
   }
 
@@ -18,7 +19,7 @@ class PGPUtils {
       Uint8List modulus, Uint8List exponent,
       [int? timestamp]) {
     return Uint8List.fromList(sha1
-        .convert(buildRSAPublicKeyPacket(modulus, exponent, timestamp, 0x99))
+        .hashSync(buildRSAPublicKeyPacket(modulus, exponent, timestamp, 0x99))
         .bytes);
   }
 

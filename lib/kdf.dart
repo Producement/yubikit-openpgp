@@ -1,5 +1,3 @@
-import 'package:crypto/crypto.dart';
-
 import 'hash_algorithm.dart';
 import 'yubikit_openpgp.dart';
 
@@ -37,7 +35,7 @@ class KdfData {
     throw Exception('KDF is not implemented properly yet.');
   }
 
-  Iterable<int> process(int pw, Iterable<int> pin) {
+  Future<Iterable<int>> process(int pw, Iterable<int> pin) async {
     if (algorithm == KdfAlgorithm.none) {
       return pin;
     } else if (algorithm == KdfAlgorithm.kdfItersaltedS2k) {
@@ -52,9 +50,10 @@ class KdfData {
     throw Exception('Algorithm not supported!');
   }
 
-  Iterable<int> kdfItersaltedS2k(Iterable<int> pin, Iterable<int> salt) {
+  Future<Iterable<int>> kdfItersaltedS2k(
+      Iterable<int> pin, Iterable<int> salt) async {
     Iterable<int> data = salt.followedBy(pin);
-    Hash digest = hashAlgorithm.digest;
+    final digest = hashAlgorithm.digest;
     List<int> input = List.empty();
     int trailingBytes = iterationCount % data.length;
     int dataCount = ((iterationCount - trailingBytes) / data.length) as int;
@@ -63,6 +62,6 @@ class KdfData {
       input.addAll(data);
     }
     input.addAll(trailing);
-    return digest.convert(input).bytes;
+    return (await digest.hash(input)).bytes;
   }
 }

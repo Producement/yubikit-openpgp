@@ -1,3 +1,6 @@
+## 1.0.10
+
+- Convert key data to JWK.
 ## 1.0.9
 
 - Export key data class.

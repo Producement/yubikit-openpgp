@@ -1,3 +1,5 @@
+import 'package:cryptography/cryptography.dart';
+
 enum ECCurve {
   secp256r1,
   secp256k1,
@@ -54,6 +56,29 @@ extension ECCurveValues on ECCurve {
         return 19;
       case ECCurve.ed25519:
         return 22;
+    }
+  }
+
+  KeyPairType get type {
+    switch (this) {
+      case ECCurve.secp256r1:
+        return KeyPairType.p256;
+      case ECCurve.secp256k1:
+        return KeyPairType.p256;
+      case ECCurve.secp384r1:
+        return KeyPairType.p384;
+      case ECCurve.secp521r1:
+        return KeyPairType.p521;
+      case ECCurve.brainpoolp256r1:
+        return KeyPairType.p256;
+      case ECCurve.brainpoolp384r1:
+        return KeyPairType.p384;
+      case ECCurve.brainpoolp512r1:
+        return KeyPairType.p521;
+      case ECCurve.x25519:
+        return KeyPairType.x25519;
+      case ECCurve.ed25519:
+        return KeyPairType.ed25519;
     }
   }
 }

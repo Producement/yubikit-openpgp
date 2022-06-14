@@ -1,14 +1,14 @@
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
-import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart' as cryptography;
 import 'package:tuple/tuple.dart';
-import 'package:yubikit_openpgp/hash_algorithm.dart';
 import 'package:yubikit_openpgp/key_data.dart';
 import 'package:yubikit_openpgp/smartcard/application.dart';
 
 import 'curve.dart';
 import 'data_object.dart';
+import 'hash_algorithm.dart';
 import 'keyslot.dart';
 import 'smartcard/exception.dart';
 import 'smartcard/instruction.dart';
@@ -36,6 +36,7 @@ class YubikitOpenPGP {
   static const int pw1_82 = 0x82;
   static const int pw3_83 = 0x83;
 
+  static final sha512 = cryptography.Sha512();
   final SmartCardInterface _smartCardInterface;
   final PinProvider _pinProvider;
 
@@ -72,7 +73,7 @@ class YubikitOpenPGP {
     final timestampBytes = ByteData(4)..setInt32(0, timestamp);
     await _setData(keySlot.genTime, timestampBytes.buffer.asUint8List(),
         verify: _verifyCommand(pw3_83, _pinProvider.adminPin));
-    return ECKeyData(publicKey);
+    return ECKeyData(publicKey, curve.type);
   }
 
   List<int> _formatRSAAttributes(KeySlot keySlot, int keySize) {
@@ -106,7 +107,11 @@ class YubikitOpenPGP {
           0x00, Instruction.generateAsym, 0x81, 0x00, keySlot.crt);
       final data = TlvData.parse(response).get(0x7F49);
       if (data.hasValue(0x86)) {
-        return ECKeyData(data.getValue(0x86));
+        return ECKeyData(
+            data.getValue(0x86),
+            keySlot == KeySlot.signature
+                ? cryptography.KeyPairType.ed25519
+                : cryptography.KeyPairType.x25519);
       } else {
         return RSAKeyData(data.getValue(0x81), data.getValue(0x82));
       }
@@ -119,7 +124,7 @@ class YubikitOpenPGP {
   }
 
   Future<Uint8List> ecSign(List<int> data) async {
-    final digest = sha512.convert(data);
+    final digest = await sha512.hash(data);
     final response = await _sendApdu(
         0x00, Instruction.performSecurityOperation, 0x9E, 0x9A, digest.bytes,
         verify: _verifyCommand(pw1_81, _pinProvider.pin));
@@ -127,7 +132,7 @@ class YubikitOpenPGP {
   }
 
   Future<Uint8List> rsaSign(List<int> data) async {
-    final digest = sha512.convert(data);
+    final digest = await sha512.hash(data);
     final hashAlgorithm = HashAlgorithm.sha512;
     final digestInfo = [
           0x30,
