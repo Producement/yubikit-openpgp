@@ -1,3 +1,6 @@
+## 1.0.9
+
+- Export key data class.
 ## 1.0.8
 
 - Implement RSA support.

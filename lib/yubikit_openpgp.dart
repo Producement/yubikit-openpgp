@@ -26,6 +26,7 @@ export 'smartcard/instruction.dart';
 export 'smartcard/pin_provider.dart';
 export 'smartcard/exception.dart';
 export 'touch_mode.dart';
+export 'key_data.dart';
 
 class YubikitOpenPGP {
   static const String defaultPin = '123456';

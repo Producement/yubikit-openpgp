@@ -1,5 +1,4 @@
 import 'package:convert/convert.dart';
-import 'package:yubikit_openpgp/key_data.dart';
 import 'package:yubikit_openpgp/yubikit_openpgp.dart';
 
 void main(List<String> arguments) async {
