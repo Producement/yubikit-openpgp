@@ -139,6 +139,7 @@ class YubikitOpenPGP {
           0x51,
           0x30,
           0x0D,
+          0x06,
           hashAlgorithm.oid.length,
           ...(hashAlgorithm.oid),
           0x05,

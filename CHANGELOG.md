@@ -1,3 +1,6 @@
+## 1.0.11
+
+- Missing tag in RSA signing digest info.
 ## 1.0.10
 
 - Convert key data to JWK.
