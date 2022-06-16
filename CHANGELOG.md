@@ -1,3 +1,7 @@
+## 1.0.13
+
+- Separate command creation from sending.
+
 ## 1.0.12
 
 - Added deciphering.

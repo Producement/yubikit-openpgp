@@ -18,7 +18,7 @@ class PGPUtils {
   }
 
   static Uint8List calculateRSAFingerprint(
-      Uint8List modulus, Uint8List exponent,
+      List<int> modulus, List<int> exponent,
       [int? timestamp]) {
     return Uint8List.fromList(sha1
         .hashSync(buildRSAPublicKeyPacket(modulus, exponent, timestamp, 0x99))
@@ -26,7 +26,7 @@ class PGPUtils {
   }
 
   static Uint8List buildRSAPublicKeyPacket(
-      Uint8List modulus, Uint8List exponent,
+      List<int> modulus, List<int> exponent,
       [int? timestamp, int? type]) {
     List<int> encoded =
         _timestampAndVersion(0x04, timestamp) + _mpi(modulus) + _mpi(exponent);
