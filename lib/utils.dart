@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
+import 'package:convert/convert.dart';
 import 'package:cryptography/dart.dart';
 
 import 'curve.dart';
 
 class PGPUtils {
   static final sha1 = const DartSha1();
+
   static Uint8List calculateECFingerprint(BigInt publicKey, ECCurve curve,
       [int? timestamp]) {
     return Uint8List.fromList(sha1
@@ -59,7 +61,7 @@ class PGPUtils {
 
   static Uint8List _keyMaterial(BigInt key) {
     return Uint8List.fromList(
-        [key.bitLength >> 8, key.bitLength & 0xFF] + _bigIntToUint8List(key));
+        [key.bitLength >> 8, key.bitLength & 0xFF] + bigIntToUint8List(key));
   }
 
   static String armor(List<int> packet) {
@@ -85,7 +87,7 @@ $content
     return (ByteData(4)..setUint32(0, crc & 0xFFFFFF)).buffer.asUint8List(1);
   }
 
-  static Uint8List _bigIntToUint8List(BigInt bigInt) =>
+  static Uint8List bigIntToUint8List(BigInt bigInt) =>
       _bigIntToByteData(bigInt).buffer.asUint8List();
 
   static ByteData _bigIntToByteData(BigInt bigInt) {
@@ -97,6 +99,10 @@ $content
     }
 
     return data;
+  }
+
+  static BigInt intListToBigInt(List<int> bytes) {
+    return BigInt.parse(hex.encode(bytes), radix: 16);
   }
 
   static List<int> percentUnescape(List<int> result) {

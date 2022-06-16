@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
@@ -135,19 +136,19 @@ class YubikitOpenPGP {
     final digest = await sha512.hash(data);
     final hashAlgorithm = HashAlgorithm.sha512;
     final digestInfo = [
-          0x30,
-          0x51,
-          0x30,
-          0x0D,
-          0x06,
-          hashAlgorithm.oid.length,
-          ...(hashAlgorithm.oid),
-          0x05,
-          0x00,
-          0x04,
-          0x40
-        ] +
-        digest.bytes;
+      0x30,
+      0x51,
+      0x30,
+      0x0D,
+      0x06,
+      hashAlgorithm.oid.length,
+      ...(hashAlgorithm.oid),
+      0x05,
+      0x00,
+      0x04,
+      0x40,
+      ...digest.bytes
+    ];
     final response = await _sendApdu(
         0x00, Instruction.performSecurityOperation, 0x9E, 0x9A, digestInfo,
         verify: _verifyCommand(pw1_81, _pinProvider.pin));
@@ -155,12 +156,24 @@ class YubikitOpenPGP {
   }
 
   Future<Uint8List> ecSharedSecret(List<int> publicKey) async {
-    final externalPublicKey = [0x86, publicKey.length] + publicKey;
-    final publicKeyDo =
-        [0x7F, 0x49, externalPublicKey.length] + externalPublicKey;
-    final cipherDo = [0xA6, publicKeyDo.length] + publicKeyDo;
+    final externalPublicKey = [0x86, publicKey.length, ...publicKey];
+    final publicKeyDo = [
+      0x7F,
+      0x49,
+      externalPublicKey.length,
+      ...externalPublicKey
+    ];
+    final cipherDo = [0xA6, publicKeyDo.length, ...publicKeyDo];
     final response = await _sendApdu(
         0x00, Instruction.performSecurityOperation, 0x80, 0x86, cipherDo,
+        verify: _verifyCommand(pw1_82, _pinProvider.pin));
+    return response;
+  }
+
+  Future<Uint8List> decipher(List<int> ciphertext) async {
+    final data = [0x00, ...ciphertext];
+    final response = await _sendApdu(
+        0x00, Instruction.performSecurityOperation, 0x80, 0x86, data,
         verify: _verifyCommand(pw1_82, _pinProvider.pin));
     return response;
   }
@@ -200,7 +213,7 @@ class YubikitOpenPGP {
 
   List<int> _verifyCommand(int pw, String pin) {
     final pinData = pin.codeUnits;
-    return [0x00, Instruction.verify.value, 0, pw, pinData.length] + pinData;
+    return [0x00, Instruction.verify.value, 0, pw, pinData.length, ...pinData];
   }
 
   Future<void> reset() async {

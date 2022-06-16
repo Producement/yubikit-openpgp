@@ -1,24 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
 import 'package:test/test.dart';
 import 'package:yubikit_openpgp/curve.dart';
 import 'package:yubikit_openpgp/utils.dart';
-
-Uint8List _bigIntToUint8List(BigInt bigInt) =>
-    _bigIntToByteData(bigInt).buffer.asUint8List();
-
-ByteData _bigIntToByteData(BigInt bigInt) {
-  final data = ByteData((bigInt.bitLength / 8).ceil());
-
-  for (var i = 1; i <= data.lengthInBytes; i++) {
-    data.setUint8(data.lengthInBytes - i, bigInt.toUnsigned(8).toInt());
-    bigInt = bigInt >> 8;
-  }
-
-  return data;
-}
 
 void main() {
   test('calculates fingerprint', () async {
@@ -26,8 +11,6 @@ void main() {
         '40189452D84165788AE29A0CD494D2C7C01EECA5333B5426FEF6D52CD206C91AAE';
     var fingerprint = PGPUtils.calculateECFingerprint(
         BigInt.parse(pubKey, radix: 16), ECCurve.ed25519, 1652084583);
-    print(_bigIntToUint8List(BigInt.parse(
-        '7480317426394696936448527343812174929534157707887635210617056164323067967739714')));
     expect(hex.encode(fingerprint),
         equals('D25515C366D77B8E9B66CD4BAC6B363B0C5A4FBD'.toLowerCase()));
   });
@@ -63,5 +46,11 @@ yDgBO22WxBHv7O8X7O/jygAEzol56iUKiXmV+XmpCtmpqQUKiQrFqclFqUDBovzSvBSFjNSiVHsuAA==
     expect(PGPUtils.percentUnescape([0x25, 0x30, 0x41]), equals([0x0A]));
     expect(PGPUtils.percentUnescape([0xFF, 0x25, 0x32, 0x35, 0x00]),
         equals([0xFF, 0x25, 0x00]));
+  });
+
+  test('bigint conversion works both ways', () async {
+    final num = BigInt.from(1234567890);
+    expect(
+        PGPUtils.intListToBigInt(PGPUtils.bigIntToUint8List(num)), equals(num));
   });
 }

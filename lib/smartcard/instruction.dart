@@ -50,9 +50,20 @@ extension InstructionValue on Instruction {
 
   Uint8List apdu(int cla, int p1, int p2, List<int> data) {
     if (data.isNotEmpty) {
+      if (data.length > 255) {
+        return Uint8List.fromList([
+              cla,
+              value,
+              p1,
+              p2,
+              0x00,
+              data.length >> 8,
+              data.length & 0xFF
+            ] +
+            data);
+      }
       return Uint8List.fromList([cla, value, p1, p2, data.length] + data);
-    } else {
-      return Uint8List.fromList([cla, value, p1, p2]);
     }
+    return Uint8List.fromList([cla, value, p1, p2]);
   }
 }
