@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
@@ -13,21 +12,21 @@ import 'hash_algorithm.dart';
 import 'keyslot.dart';
 import 'smartcard/exception.dart';
 import 'smartcard/instruction.dart';
-import 'smartcard/pin_provider.dart';
 import 'smartcard/interface.dart';
+import 'smartcard/pin_provider.dart';
 import 'tlv.dart';
 import 'touch_mode.dart';
 import 'utils.dart';
 
 export 'curve.dart';
+export 'key_data.dart';
 export 'keyslot.dart';
 export 'smartcard/application.dart';
-export 'smartcard/interface.dart';
-export 'smartcard/instruction.dart';
-export 'smartcard/pin_provider.dart';
 export 'smartcard/exception.dart';
+export 'smartcard/instruction.dart';
+export 'smartcard/interface.dart';
+export 'smartcard/pin_provider.dart';
 export 'touch_mode.dart';
-export 'key_data.dart';
 
 class YubikitOpenPGP {
   static const String defaultPin = '123456';
