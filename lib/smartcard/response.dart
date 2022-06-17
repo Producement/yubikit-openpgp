@@ -5,7 +5,7 @@ abstract class SmartCardResponse {
 
   factory SmartCardResponse.fromBytes(List<int> response) {
     if (response.length == 2) {
-      return ErrorResponse(response[0], response[2]);
+      return ErrorResponse(response[0], response[1]);
     } else {
       return SuccessfulResponse(response);
     }

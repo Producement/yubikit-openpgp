@@ -1,3 +1,7 @@
+## 1.0.16
+
+- Fix response parsing bug.
+
 ## 1.0.15
 
 - Specify response type.
