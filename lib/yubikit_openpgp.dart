@@ -38,33 +38,37 @@ class YubikitOpenPGP {
 
   Future<ECKeyData> generateECKey(KeySlot keySlot, ECCurve curve,
       [int? timestamp]) async {
-    await _smartCardInterface.sendCommand(application,
-        _commands.setECKeyAttributes(keySlot, curve, _pinProvider.adminPin));
-    final response = await _smartCardInterface.sendCommand(application,
-        _commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
     await _smartCardInterface.sendCommand(
-        application,
-        _commands.setECKeyFingerprint(
-            keySlot, curve, response, _pinProvider.adminPin));
+        application, _commands.setECKeyAttributes(keySlot, curve),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
+    final response = await _smartCardInterface.sendCommand(
+        application, _commands.generateAsymmetricKey(keySlot),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
+    await _smartCardInterface.sendCommand(
+        application, _commands.setECKeyFingerprint(keySlot, curve, response),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
     timestamp ??= DateTime.now().millisecondsSinceEpoch;
-    await _smartCardInterface.sendCommand(application,
-        _commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
+    await _smartCardInterface.sendCommand(
+        application, _commands.setGenerationTime(keySlot, timestamp),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
     return ECKeyData.fromBytes(response, keySlot);
   }
 
   Future<RSAKeyData> generateRSAKey(KeySlot keySlot, int keySize,
       [int? timestamp]) async {
-    await _smartCardInterface.sendCommand(application,
-        _commands.setRsaKeyAttributes(keySlot, keySize, _pinProvider.adminPin));
-    final response = await _smartCardInterface.sendCommand(application,
-        _commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
     await _smartCardInterface.sendCommand(
-        application,
-        _commands.setRsaKeyFingerprint(
-            keySlot, response, _pinProvider.adminPin));
+        application, _commands.setRsaKeyAttributes(keySlot, keySize),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
+    final response = await _smartCardInterface.sendCommand(
+        application, _commands.generateAsymmetricKey(keySlot),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
+    await _smartCardInterface.sendCommand(
+        application, _commands.setRsaKeyFingerprint(keySlot, response),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
     timestamp ??= DateTime.now().millisecondsSinceEpoch;
-    await _smartCardInterface.sendCommand(application,
-        _commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
+    await _smartCardInterface.sendCommand(
+        application, _commands.setGenerationTime(keySlot, timestamp),
+        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
     return RSAKeyData.fromBytes(response, keySlot);
   }
 
@@ -82,23 +86,25 @@ class YubikitOpenPGP {
   }
 
   Future<Uint8List> ecSign(List<int> data) async {
-    return _smartCardInterface.sendCommand(
-        application, _commands.ecSign(data, _pinProvider.pin));
+    return _smartCardInterface.sendCommand(application, _commands.ecSign(data),
+        verify: _commands.verifySignaturePin(_pinProvider.pin));
   }
 
   Future<Uint8List> rsaSign(List<int> data) async {
-    return _smartCardInterface.sendCommand(
-        application, _commands.rsaSign(data, _pinProvider.pin));
+    return _smartCardInterface.sendCommand(application, _commands.rsaSign(data),
+        verify: _commands.verifySignaturePin(_pinProvider.pin));
   }
 
   Future<Uint8List> ecSharedSecret(List<int> publicKey) async {
     return _smartCardInterface.sendCommand(
-        application, _commands.ecSharedSecret(publicKey, _pinProvider.pin));
+        application, _commands.ecSharedSecret(publicKey),
+        verify: _commands.verifyEncryptionPin(_pinProvider.pin));
   }
 
   Future<Uint8List> decipher(List<int> ciphertext) async {
     final response = await _smartCardInterface.sendCommand(
-        application, _commands.decipher(ciphertext, _pinProvider.pin));
+        application, _commands.decipher(ciphertext),
+        verify: _commands.verifyEncryptionPin(_pinProvider.pin));
     return response;
   }
 

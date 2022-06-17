@@ -1,3 +1,7 @@
+## 1.0.17
+
+- Fix pin verification issue.
+
 ## 1.0.16
 
 - Fix response parsing bug.
