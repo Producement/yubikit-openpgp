@@ -10,6 +10,7 @@ import 'keyslot.dart';
 import 'smartcard/exception.dart';
 import 'smartcard/interface.dart';
 import 'smartcard/pin_provider.dart';
+import 'smartcard/response.dart';
 import 'touch_mode.dart';
 
 export 'curve.dart';
@@ -38,38 +39,57 @@ class YubikitOpenPGP {
 
   Future<ECKeyData> generateECKey(KeySlot keySlot, ECCurve curve,
       [int? timestamp]) async {
-    await _smartCardInterface.sendCommand(
-        application, _commands.setECKeyAttributes(keySlot, curve),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    final response = await _smartCardInterface.sendCommand(
-        application, _commands.generateAsymmetricKey(keySlot),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    await _smartCardInterface.sendCommand(
-        application, _commands.setECKeyFingerprint(keySlot, curve, response),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    timestamp ??= DateTime.now().millisecondsSinceEpoch;
-    await _smartCardInterface.sendCommand(
-        application, _commands.setGenerationTime(keySlot, timestamp),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    return ECKeyData.fromBytes(response, keySlot);
+    final responses = await (await _smartCardInterface.sendCommands(
+            application,
+            [
+              _commands.setECKeyAttributes(keySlot, curve),
+              _commands.generateAsymmetricKey(keySlot)
+            ],
+            verify: _commands.verifyAdminPin(_pinProvider.adminPin)))
+        .toList();
+    final generateResponse = responses[1];
+    if (generateResponse is SuccessfulResponse) {
+      timestamp ??= DateTime.now().millisecondsSinceEpoch;
+      await _smartCardInterface.sendCommands(
+          application,
+          [
+            _commands.setECKeyFingerprint(
+                keySlot, curve, generateResponse.response),
+            _commands.setGenerationTime(keySlot, timestamp)
+          ],
+          verify: _commands.verifyAdminPin(_pinProvider.adminPin));
+      return ECKeyData.fromBytes(generateResponse.response, keySlot);
+    } else if (generateResponse is ErrorResponse) {
+      throw generateResponse.exception;
+    }
+    throw Exception('Invalid response type ${generateResponse.runtimeType}');
   }
 
   Future<RSAKeyData> generateRSAKey(KeySlot keySlot, int keySize,
       [int? timestamp]) async {
-    await _smartCardInterface.sendCommand(
-        application, _commands.setRsaKeyAttributes(keySlot, keySize),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    final response = await _smartCardInterface.sendCommand(
-        application, _commands.generateAsymmetricKey(keySlot),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    await _smartCardInterface.sendCommand(
-        application, _commands.setRsaKeyFingerprint(keySlot, response),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    timestamp ??= DateTime.now().millisecondsSinceEpoch;
-    await _smartCardInterface.sendCommand(
-        application, _commands.setGenerationTime(keySlot, timestamp),
-        verify: _commands.verifyAdminPin(_pinProvider.adminPin));
-    return RSAKeyData.fromBytes(response, keySlot);
+    final responses = await (await _smartCardInterface.sendCommands(
+            application,
+            [
+              _commands.setRsaKeyAttributes(keySlot, keySize),
+              _commands.generateAsymmetricKey(keySlot)
+            ],
+            verify: _commands.verifyAdminPin(_pinProvider.adminPin)))
+        .toList();
+    final generateResponse = responses[1];
+    if (generateResponse is SuccessfulResponse) {
+      timestamp ??= DateTime.now().millisecondsSinceEpoch;
+      await _smartCardInterface.sendCommands(
+          application,
+          [
+            _commands.setRsaKeyFingerprint(keySlot, generateResponse.response),
+            _commands.setGenerationTime(keySlot, timestamp)
+          ],
+          verify: _commands.verifyAdminPin(_pinProvider.adminPin));
+      return RSAKeyData.fromBytes(generateResponse.response, keySlot);
+    } else if (generateResponse is ErrorResponse) {
+      throw generateResponse.exception;
+    }
+    throw Exception('Invalid response type ${generateResponse.runtimeType}');
   }
 
   Future<KeyData?> getPublicKey(KeySlot keySlot) async {
@@ -83,6 +103,30 @@ class YubikitOpenPGP {
       }
       rethrow;
     }
+  }
+
+  Future<Map<KeySlot, KeyData?>> getAllPublicKeys() async {
+    final commands = [
+      _commands.getAsymmetricPublicKey(KeySlot.signature),
+      _commands.getAsymmetricPublicKey(KeySlot.encryption),
+      _commands.getAsymmetricPublicKey(KeySlot.authentication),
+    ];
+    final results =
+        await _smartCardInterface.sendCommands(application, commands);
+    final result = await results.toList();
+    final entries = <MapEntry<KeySlot, KeyData?>>[];
+    entries.add(_keyEntry(KeySlot.signature, result[0]));
+    entries.add(_keyEntry(KeySlot.encryption, result[1]));
+    entries.add(_keyEntry(KeySlot.authentication, result[2]));
+    return Map.fromEntries(entries);
+  }
+
+  MapEntry<KeySlot, KeyData?> _keyEntry(
+      KeySlot keySlot, SmartCardResponse response) {
+    if (response is SuccessfulResponse) {
+      return MapEntry(keySlot, KeyData.fromBytes(response.response, keySlot));
+    }
+    return MapEntry(keySlot, null);
   }
 
   Future<Uint8List> ecSign(List<int> data) async {
@@ -143,32 +187,24 @@ class YubikitOpenPGP {
   }
 
   Future<void> reset() async {
-    await _blockPins();
-    await _smartCardInterface.sendCommand(application, _commands.terminate());
-    await _smartCardInterface.sendCommand(application, _commands.activate());
+    final commands = [
+      ..._blockPins(),
+      _commands.terminate(),
+      _commands.activate()
+    ];
+    await _smartCardInterface.sendCommands(Application.openpgp, commands);
   }
 
-  Future<void> _blockPins() async {
+  List<Uint8List> _blockPins() {
+    const cmds = YubikitOpenPGPCommands();
     var invalidPin = '00000000';
-    PinRetries retries = await getRemainingPinTries();
-    // ignore: no_leading_underscores_for_local_identifiers
-    for (var _ in Iterable.generate(retries.pin)) {
-      try {
-        await _smartCardInterface.sendCommand(
-            application, _commands.verifySignaturePin(invalidPin));
-      } catch (e) {
-        //Ignore
-      }
-    }
-    // ignore: no_leading_underscores_for_local_identifiers
-    for (var _ in Iterable.generate(retries.admin)) {
-      try {
-        await _smartCardInterface.sendCommand(
-            application, _commands.verifyAdminPin(invalidPin));
-      } catch (e) {
-        //Ignore
-      }
-    }
+    final pinCmds = Iterable.generate(9)
+        .map((e) => cmds.verifySignaturePin(invalidPin))
+        .toList();
+    final adminPinCmds = Iterable.generate(9)
+        .map((e) => cmds.verifyAdminPin(invalidPin))
+        .toList();
+    return pinCmds + adminPinCmds;
   }
 }
 

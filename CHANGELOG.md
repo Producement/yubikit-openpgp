@@ -1,3 +1,7 @@
+## 1.0.18
+
+- Use batching for longer processes.
+
 ## 1.0.17
 
 - Fix pin verification issue.
