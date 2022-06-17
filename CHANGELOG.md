@@ -1,3 +1,7 @@
+## 1.0.14
+
+- Separate response parsing from sending.
+
 ## 1.0.13
 
 - Separate command creation from sending.

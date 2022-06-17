@@ -40,9 +40,9 @@ class KdfData {
       return pin;
     } else if (algorithm == KdfAlgorithm.kdfItersaltedS2k) {
       late Iterable<int> salt;
-      if (pw == YubikitOpenPGP.pw1_81) {
+      if (pw == YubikitOpenPGPCommands.pw1_81) {
         salt = pw1SaltBytes!;
-      } else if (pw == YubikitOpenPGP.pw3_83) {
+      } else if (pw == YubikitOpenPGPCommands.pw3_83) {
         salt = pw1SaltBytes ?? pw3SaltBytes;
       }
       return kdfItersaltedS2k(pin, salt);

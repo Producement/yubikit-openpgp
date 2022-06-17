@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
 import 'package:cryptography/dart.dart';
+import 'package:yubikit_openpgp/tlv.dart';
 import 'package:yubikit_openpgp/utils.dart';
 
 import 'curve.dart';
@@ -34,7 +35,7 @@ class YubikitOpenPGPCommands {
 
   Uint8List generateAsymmetricKey(KeySlot keySlot, String adminPin) {
     return _sendApdu(0x00, Instruction.generateAsym, 0x80, 0x00, keySlot.crt,
-        verify: verify(pw3_83, adminPin));
+        verify: verifyAdminPin(adminPin));
   }
 
   Uint8List getAsymmetricPublicKey(KeySlot keySlot) {
@@ -44,30 +45,35 @@ class YubikitOpenPGPCommands {
   Uint8List setGenerationTime(KeySlot keySlot, int timestamp, String adminPin) {
     final timestampBytes = ByteData(4)..setInt32(0, timestamp);
     return _setData(keySlot.genTime, timestampBytes.buffer.asUint8List(),
-        verify: verify(pw3_83, adminPin));
+        verify: verifyAdminPin(adminPin));
   }
 
   Uint8List setECKeyFingerprint(
-      KeySlot keySlot, ECCurve curve, List<int> publicKey, String adminPin) {
+      KeySlot keySlot, ECCurve curve, List<int> response, String adminPin) {
+    final data = TlvData.parse(response).get(0x7F49);
+    final publicKey = data.getValue(0x86);
     return _setData(
         keySlot.fingerprint,
         PGPUtils.calculateECFingerprint(
             BigInt.parse(hex.encode(publicKey), radix: 16), curve),
-        verify: verify(pw3_83, adminPin));
+        verify: verifyAdminPin(adminPin));
   }
 
   Uint8List setRsaKeyFingerprint(
-      KeySlot keySlot, List<int> modulus, List<int> exponent, String adminPin) {
+      KeySlot keySlot, List<int> response, String adminPin) {
+    final data = TlvData.parse(response).get(0x7F49);
+    final modulus = data.getValue(0x81);
+    final exponent = data.getValue(0x82);
     return _setData(keySlot.fingerprint,
         PGPUtils.calculateRSAFingerprint(modulus, exponent),
-        verify: verify(pw3_83, adminPin));
+        verify: verifyAdminPin(adminPin));
   }
 
   Uint8List setECKeyAttributes(
       KeySlot keySlot, ECCurve curve, String adminPin) {
     final attributes = _formatECAttributes(keySlot, curve);
     return _setData(keySlot.keyId, attributes,
-        verify: verify(pw3_83, adminPin));
+        verify: verifyAdminPin(adminPin));
   }
 
   List<int> _formatRSAAttributes(KeySlot keySlot, int keySize) {
@@ -77,14 +83,14 @@ class YubikitOpenPGPCommands {
   Uint8List setRsaKeyAttributes(KeySlot keySlot, int keySize, String adminPin) {
     final attributes = _formatRSAAttributes(keySlot, keySize);
     return _setData(keySlot.keyId, attributes,
-        verify: verify(pw3_83, adminPin));
+        verify: verifyAdminPin(adminPin));
   }
 
   Uint8List ecSign(List<int> data, String pin) {
     final digest = sha512.hashSync(data);
     return _sendApdu(
         0x00, Instruction.performSecurityOperation, 0x9E, 0x9A, digest.bytes,
-        verify: verify(pw1_81, pin));
+        verify: verifySignaturePin(pin));
   }
 
   Uint8List rsaSign(List<int> data, String pin) {
@@ -106,7 +112,7 @@ class YubikitOpenPGPCommands {
     ];
     return _sendApdu(
         0x00, Instruction.performSecurityOperation, 0x9E, 0x9A, digestInfo,
-        verify: verify(pw1_81, pin));
+        verify: verifySignaturePin(pin));
   }
 
   Uint8List ecSharedSecret(List<int> publicKey, String pin) {
@@ -120,14 +126,14 @@ class YubikitOpenPGPCommands {
     final cipherDo = [0xA6, publicKeyDo.length, ...publicKeyDo];
     return _sendApdu(
         0x00, Instruction.performSecurityOperation, 0x80, 0x86, cipherDo,
-        verify: verify(pw1_82, pin));
+        verify: _verify(pw1_82, pin));
   }
 
   Uint8List decipher(List<int> ciphertext, String pin) {
     final data = [0x00, ...ciphertext];
     return _sendApdu(
         0x00, Instruction.performSecurityOperation, 0x80, 0x86, data,
-        verify: verify(pw1_82, pin));
+        verify: _verify(pw1_82, pin));
   }
 
   Uint8List getTouch(KeySlot keySlot) {
@@ -182,7 +188,15 @@ class YubikitOpenPGPCommands {
     return instruction.apdu(cla, p1, p2, data);
   }
 
-  List<int> verify(int pw, String pin) {
+  Uint8List verifySignaturePin(String pin) {
+    return Uint8List.fromList(_verify(pw1_81, pin));
+  }
+
+  Uint8List verifyAdminPin(String adminPin) {
+    return Uint8List.fromList(_verify(pw3_83, adminPin));
+  }
+
+  List<int> _verify(int pw, String pin) {
     final pinData = pin.codeUnits;
     return [0x00, Instruction.verify.value, 0, pw, pinData.length, ...pinData];
   }

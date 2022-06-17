@@ -1,8 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
-import 'package:cryptography/cryptography.dart' as cryptography;
-import 'package:tuple/tuple.dart';
 import 'package:yubikit_openpgp/commands.dart';
 import 'package:yubikit_openpgp/key_data.dart';
 import 'package:yubikit_openpgp/smartcard/application.dart';
@@ -12,7 +10,6 @@ import 'keyslot.dart';
 import 'smartcard/exception.dart';
 import 'smartcard/interface.dart';
 import 'smartcard/pin_provider.dart';
-import 'tlv.dart';
 import 'touch_mode.dart';
 
 export 'curve.dart';
@@ -30,10 +27,6 @@ class YubikitOpenPGP {
   static const String defaultPin = '123456';
   static const String defaultAdminPin = '12345678';
 
-  static const int pw1_81 = 0x81;
-  static const int pw1_82 = 0x82;
-  static const int pw3_83 = 0x83;
-
   static final application = Application.openpgp;
   final YubikitOpenPGPCommands commands;
   final SmartCardInterface _smartCardInterface;
@@ -48,16 +41,14 @@ class YubikitOpenPGP {
         commands.setECKeyAttributes(keySlot, curve, _pinProvider.adminPin));
     final response = await _smartCardInterface.sendCommand(application,
         commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
-    final data = TlvData.parse(response).get(0x7F49);
-    final publicKey = data.getValue(0x86);
     await _smartCardInterface.sendCommand(
         application,
         commands.setECKeyFingerprint(
-            keySlot, curve, publicKey, _pinProvider.adminPin));
+            keySlot, curve, response, _pinProvider.adminPin));
     timestamp ??= DateTime.now().millisecondsSinceEpoch;
     await _smartCardInterface.sendCommand(application,
         commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
-    return ECKeyData(publicKey, curve.type);
+    return ECKeyData.fromBytes(response, keySlot);
   }
 
   Future<RSAKeyData> generateRSAKey(KeySlot keySlot, int keySize,
@@ -66,33 +57,21 @@ class YubikitOpenPGP {
         commands.setRsaKeyAttributes(keySlot, keySize, _pinProvider.adminPin));
     final response = await _smartCardInterface.sendCommand(application,
         commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
-    final data = TlvData.parse(response).get(0x7F49);
-    final modulus = data.getValue(0x81);
-    final exponent = data.getValue(0x82);
     await _smartCardInterface.sendCommand(
         application,
         commands.setRsaKeyFingerprint(
-            keySlot, modulus, exponent, _pinProvider.adminPin));
+            keySlot, response, _pinProvider.adminPin));
     timestamp ??= DateTime.now().millisecondsSinceEpoch;
     await _smartCardInterface.sendCommand(application,
         commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
-    return RSAKeyData(modulus, exponent);
+    return RSAKeyData.fromBytes(response, keySlot);
   }
 
   Future<KeyData?> getPublicKey(KeySlot keySlot) async {
     try {
       final response = await _smartCardInterface.sendCommand(
           application, commands.getAsymmetricPublicKey(keySlot));
-      final data = TlvData.parse(response).get(0x7F49);
-      if (data.hasValue(0x86)) {
-        return ECKeyData(
-            data.getValue(0x86),
-            keySlot == KeySlot.signature
-                ? cryptography.KeyPairType.ed25519
-                : cryptography.KeyPairType.x25519);
-      } else {
-        return RSAKeyData(data.getValue(0x81), data.getValue(0x82));
-      }
+      return KeyData.fromBytes(response, keySlot);
     } on SmartCardException catch (e) {
       if (e.getError() == SmartCardError.memoryFailure) {
         return null;
@@ -133,24 +112,22 @@ class YubikitOpenPGP {
         application, commands.setTouch(keySlot, mode));
   }
 
-  Future<Tuple2<int, int>> getOpenPGPVersion() async {
-    final data = await _smartCardInterface.sendCommand(
+  Future<OpenPGPVersion> getOpenPGPVersion() async {
+    final response = await _smartCardInterface.sendCommand(
         application, commands.getOpenPGPVersion());
-    return Tuple2(data[6], data[7]);
+    return OpenPGPVersion.fromBytes(response);
   }
 
-  Future<Tuple3<int, int, int>> getApplicationVersion() async {
-    final data = await _smartCardInterface.sendCommand(
+  Future<ApplicationVersion> getApplicationVersion() async {
+    final response = await _smartCardInterface.sendCommand(
         application, commands.getApplicationVersion());
-    var hexData = hex.encode(data);
-    return Tuple3(int.parse(hexData.substring(0, 2)),
-        int.parse(hexData.substring(2, 4)), int.parse(hexData.substring(4, 6)));
+    return ApplicationVersion.fromBytes(response);
   }
 
   Future<PinRetries> getRemainingPinTries() async {
-    final data = await _smartCardInterface.sendCommand(
+    final response = await _smartCardInterface.sendCommand(
         application, commands.getRemainingPinTries());
-    return PinRetries(data[4], data[5], data[6]);
+    return PinRetries.fromBytes(response);
   }
 
   Future<void> setPinRetries(int pw1Tries, int pw2Tries, int pw3Tries) async {
@@ -171,7 +148,7 @@ class YubikitOpenPGP {
     for (var _ in Iterable.generate(retries.pin)) {
       try {
         await _smartCardInterface.sendCommand(
-            application, commands.verify(pw1_81, invalidPin));
+            application, commands.verifySignaturePin(invalidPin));
       } catch (e) {
         //Ignore
       }
@@ -180,7 +157,7 @@ class YubikitOpenPGP {
     for (var _ in Iterable.generate(retries.admin)) {
       try {
         await _smartCardInterface.sendCommand(
-            application, commands.verify(pw3_83, invalidPin));
+            application, commands.verifyAdminPin(invalidPin));
       } catch (e) {
         //Ignore
       }
@@ -188,36 +165,34 @@ class YubikitOpenPGP {
   }
 }
 
+class OpenPGPVersion {
+  final int major, minor;
+
+  const OpenPGPVersion(this.major, this.minor);
+
+  factory OpenPGPVersion.fromBytes(List<int> response) {
+    return OpenPGPVersion(response[6], response[7]);
+  }
+}
+
+class ApplicationVersion {
+  final int major, minor, patch;
+
+  const ApplicationVersion(this.major, this.minor, this.patch);
+
+  factory ApplicationVersion.fromBytes(List<int> response) {
+    final hexData = hex.encode(response);
+    return ApplicationVersion(int.parse(hexData.substring(0, 2)),
+        int.parse(hexData.substring(2, 4)), int.parse(hexData.substring(4, 6)));
+  }
+}
+
 class PinRetries {
   final int pin, reset, admin;
 
   const PinRetries(this.pin, this.reset, this.admin);
-}
 
-extension Tuple3Compare on Tuple3 {
-  bool operator <(Tuple3 other) {
-    if (item1 < other.item1) {
-      return true;
-    } else if (item1 == other.item1) {
-      if (item2 < other.item2) {
-        return true;
-      } else if (item2 == other.item2) {
-        return item3 < other.item3;
-      }
-    }
-    return false;
-  }
-
-  bool operator >(Tuple3 other) {
-    if (item1 > other.item1) {
-      return true;
-    } else if (item1 == other.item1) {
-      if (item2 > other.item2) {
-        return true;
-      } else if (item2 == other.item2) {
-        return item3 > other.item3;
-      }
-    }
-    return false;
+  factory PinRetries.fromBytes(List<int> response) {
+    return PinRetries(response[4], response[5], response[6]);
   }
 }
