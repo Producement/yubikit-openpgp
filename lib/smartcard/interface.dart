@@ -14,10 +14,18 @@ class SmartCardInterface {
 
   Future<Uint8List> sendCommand(Application application, List<int> input,
       {List<int>? verify}) async {
-    return (await sendCommands(application, [input], verify: verify)).first;
+    final response =
+        await (await sendCommands(application, [input], verify: verify)).first;
+    if (response is ErrorResponse) {
+      throw response.exception;
+    } else if (response is SuccessfulResponse) {
+      return Uint8List.fromList(response.response);
+    } else {
+      throw Exception('Response type not supported ${response.runtimeType}');
+    }
   }
 
-  Future<Stream<Uint8List>> sendCommands(
+  Future<Stream<SmartCardResponse>> sendCommands(
       Application application, List<List<int>> input,
       {List<int>? verify}) async {
     if (verify != null) {
@@ -26,7 +34,7 @@ class SmartCardInterface {
     return Stream.fromFutures(input.map((e) => _sendCommand(e)));
   }
 
-  Future<Uint8List> _sendCommand(List<int> input,
+  Future<SmartCardResponse> _sendCommand(List<int> input,
       [List<int> accumulatingBytes = const []]) async {
     String command = 'scd apdu ${_hexWithSpaces(input)}';
     var processResult =
@@ -44,10 +52,10 @@ class SmartCardInterface {
     } else if (!eq(resultStatus, _successfulEnd)) {
       final errorCode =
           result.skip(result.length - _successfulEnd.length).take(2).toList();
-      throw SmartCardException(errorCode[0], errorCode[1]);
+      return SmartCardResponse.fromBytes(errorCode.take(2).toList());
     }
     final processedResult = resultContent(result);
-    return Uint8List.fromList(accumulatingBytes + processedResult);
+    return SmartCardResponse.fromBytes(accumulatingBytes + processedResult);
   }
 
   // Result starts with "D " and ends with "90 00 OK". %, CR and LF must be percent encoded, others can be.

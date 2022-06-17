@@ -1,3 +1,7 @@
+## 1.0.15
+
+- Specify response type.
+
 ## 1.0.14
 
 - Separate response parsing from sending.

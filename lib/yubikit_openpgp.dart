@@ -20,6 +20,7 @@ export 'smartcard/exception.dart';
 export 'smartcard/instruction.dart';
 export 'smartcard/interface.dart';
 export 'smartcard/pin_provider.dart';
+export 'smartcard/response.dart';
 export 'touch_mode.dart';
 export 'commands.dart';
 
@@ -28,52 +29,52 @@ class YubikitOpenPGP {
   static const String defaultAdminPin = '12345678';
 
   static final application = Application.openpgp;
-  final YubikitOpenPGPCommands commands;
+  final YubikitOpenPGPCommands _commands;
   final SmartCardInterface _smartCardInterface;
   final PinProvider _pinProvider;
 
   const YubikitOpenPGP(this._smartCardInterface, this._pinProvider,
-      {this.commands = const YubikitOpenPGPCommands()});
+      [this._commands = const YubikitOpenPGPCommands()]);
 
   Future<ECKeyData> generateECKey(KeySlot keySlot, ECCurve curve,
       [int? timestamp]) async {
     await _smartCardInterface.sendCommand(application,
-        commands.setECKeyAttributes(keySlot, curve, _pinProvider.adminPin));
+        _commands.setECKeyAttributes(keySlot, curve, _pinProvider.adminPin));
     final response = await _smartCardInterface.sendCommand(application,
-        commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
+        _commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
     await _smartCardInterface.sendCommand(
         application,
-        commands.setECKeyFingerprint(
+        _commands.setECKeyFingerprint(
             keySlot, curve, response, _pinProvider.adminPin));
     timestamp ??= DateTime.now().millisecondsSinceEpoch;
     await _smartCardInterface.sendCommand(application,
-        commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
+        _commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
     return ECKeyData.fromBytes(response, keySlot);
   }
 
   Future<RSAKeyData> generateRSAKey(KeySlot keySlot, int keySize,
       [int? timestamp]) async {
     await _smartCardInterface.sendCommand(application,
-        commands.setRsaKeyAttributes(keySlot, keySize, _pinProvider.adminPin));
+        _commands.setRsaKeyAttributes(keySlot, keySize, _pinProvider.adminPin));
     final response = await _smartCardInterface.sendCommand(application,
-        commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
+        _commands.generateAsymmetricKey(keySlot, _pinProvider.adminPin));
     await _smartCardInterface.sendCommand(
         application,
-        commands.setRsaKeyFingerprint(
+        _commands.setRsaKeyFingerprint(
             keySlot, response, _pinProvider.adminPin));
     timestamp ??= DateTime.now().millisecondsSinceEpoch;
     await _smartCardInterface.sendCommand(application,
-        commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
+        _commands.setGenerationTime(keySlot, timestamp, _pinProvider.adminPin));
     return RSAKeyData.fromBytes(response, keySlot);
   }
 
   Future<KeyData?> getPublicKey(KeySlot keySlot) async {
     try {
       final response = await _smartCardInterface.sendCommand(
-          application, commands.getAsymmetricPublicKey(keySlot));
+          application, _commands.getAsymmetricPublicKey(keySlot));
       return KeyData.fromBytes(response, keySlot);
     } on SmartCardException catch (e) {
-      if (e.getError() == SmartCardError.memoryFailure) {
+      if (e.error == SmartCardError.memoryFailure) {
         return null;
       }
       rethrow;
@@ -82,63 +83,63 @@ class YubikitOpenPGP {
 
   Future<Uint8List> ecSign(List<int> data) async {
     return _smartCardInterface.sendCommand(
-        application, commands.ecSign(data, _pinProvider.pin));
+        application, _commands.ecSign(data, _pinProvider.pin));
   }
 
   Future<Uint8List> rsaSign(List<int> data) async {
     return _smartCardInterface.sendCommand(
-        application, commands.rsaSign(data, _pinProvider.pin));
+        application, _commands.rsaSign(data, _pinProvider.pin));
   }
 
   Future<Uint8List> ecSharedSecret(List<int> publicKey) async {
     return _smartCardInterface.sendCommand(
-        application, commands.ecSharedSecret(publicKey, _pinProvider.pin));
+        application, _commands.ecSharedSecret(publicKey, _pinProvider.pin));
   }
 
   Future<Uint8List> decipher(List<int> ciphertext) async {
     final response = await _smartCardInterface.sendCommand(
-        application, commands.decipher(ciphertext, _pinProvider.pin));
+        application, _commands.decipher(ciphertext, _pinProvider.pin));
     return response;
   }
 
   Future<TouchMode> getTouch(KeySlot keySlot) async {
     final data = await _smartCardInterface.sendCommand(
-        application, commands.getTouch(keySlot));
+        application, _commands.getTouch(keySlot));
     return TouchModeValues.parse(data);
   }
 
   Future<void> setTouch(KeySlot keySlot, TouchMode mode) async {
     await _smartCardInterface.sendCommand(
-        application, commands.setTouch(keySlot, mode));
+        application, _commands.setTouch(keySlot, mode));
   }
 
   Future<OpenPGPVersion> getOpenPGPVersion() async {
     final response = await _smartCardInterface.sendCommand(
-        application, commands.getOpenPGPVersion());
+        application, _commands.getOpenPGPVersion());
     return OpenPGPVersion.fromBytes(response);
   }
 
   Future<ApplicationVersion> getApplicationVersion() async {
     final response = await _smartCardInterface.sendCommand(
-        application, commands.getApplicationVersion());
+        application, _commands.getApplicationVersion());
     return ApplicationVersion.fromBytes(response);
   }
 
   Future<PinRetries> getRemainingPinTries() async {
     final response = await _smartCardInterface.sendCommand(
-        application, commands.getRemainingPinTries());
+        application, _commands.getRemainingPinTries());
     return PinRetries.fromBytes(response);
   }
 
   Future<void> setPinRetries(int pw1Tries, int pw2Tries, int pw3Tries) async {
     await _smartCardInterface.sendCommand(
-        application, commands.setPinRetries(pw1Tries, pw2Tries, pw3Tries));
+        application, _commands.setPinRetries(pw1Tries, pw2Tries, pw3Tries));
   }
 
   Future<void> reset() async {
     await _blockPins();
-    await _smartCardInterface.sendCommand(application, commands.terminate());
-    await _smartCardInterface.sendCommand(application, commands.activate());
+    await _smartCardInterface.sendCommand(application, _commands.terminate());
+    await _smartCardInterface.sendCommand(application, _commands.activate());
   }
 
   Future<void> _blockPins() async {
@@ -148,7 +149,7 @@ class YubikitOpenPGP {
     for (var _ in Iterable.generate(retries.pin)) {
       try {
         await _smartCardInterface.sendCommand(
-            application, commands.verifySignaturePin(invalidPin));
+            application, _commands.verifySignaturePin(invalidPin));
       } catch (e) {
         //Ignore
       }
@@ -157,7 +158,7 @@ class YubikitOpenPGP {
     for (var _ in Iterable.generate(retries.admin)) {
       try {
         await _smartCardInterface.sendCommand(
-            application, commands.verifyAdminPin(invalidPin));
+            application, _commands.verifyAdminPin(invalidPin));
       } catch (e) {
         //Ignore
       }
