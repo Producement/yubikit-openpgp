@@ -338,7 +338,7 @@ void main() {
       ..setUint8(1, data[8]);
     expect(fullModulusLength.getUint16(0), equals(256));
     // Public exponent (0x82) starts after modulus
-    final int peIndex = 9 + 256;
+    const int peIndex = 9 + 256;
     expect(data[peIndex], equals(0x82));
     // Public exponent is short, usually 65537
     expect(data[peIndex + 1], lessThan(0x80));

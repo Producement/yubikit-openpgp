@@ -6,7 +6,7 @@ import 'package:yubikit_openpgp/utils.dart';
 import 'package:yubikit_openpgp/yubikit_openpgp.dart';
 
 void main() {
-  final smartCardInterface = SmartCardInterface();
+  const smartCardInterface = SmartCardInterface();
   final pinProvider = PinProvider();
   final openPGPInterface = YubikitOpenPGP(smartCardInterface, pinProvider);
   final cipher = PKCS1Encoding(RSAEngine());

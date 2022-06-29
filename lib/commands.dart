@@ -86,7 +86,7 @@ class YubikitOpenPGPCommands {
 
   Uint8List rsaSign(List<int> data) {
     final digest = sha512.hashSync(data);
-    final hashAlgorithm = HashAlgorithm.sha512;
+    const hashAlgorithm = HashAlgorithm.sha512;
     final digestInfo = [
       0x30,
       0x51,

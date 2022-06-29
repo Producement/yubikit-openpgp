@@ -1,3 +1,7 @@
+## 1.0.19
+
+- Improve code quality.
+
 ## 1.0.18
 
 - Use batching for longer processes.

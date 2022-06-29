@@ -1,6 +1,6 @@
 name: yubikit_openpgp
 description: Yubikey OpenPGP interface. Smartcard interface can be replaced for different platforms like Flutter.
-version: 1.0.18
+version: 1.0.19
 homepage: https://github.com/Producement/yubikit-openpgp
 
 environment:
@@ -11,6 +11,7 @@ dependencies:
   collection: ^1.16.0
   jwk: ^0.1.1
   cryptography: ^2.0.5
+  meta: ^1.8.0
 
 dev_dependencies:
   lints: ^2.0.0
