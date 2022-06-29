@@ -29,7 +29,8 @@ class KdfData {
 
   factory KdfData.parse(List<int> data) {
     if (data[0] == 0x81 && data[1] == 0x01 && data[2] == 0x00) {
-      return KdfData(KdfAlgorithm.none, HashAlgorithm.sha256, 0, null, []);
+      return const KdfData(
+          KdfAlgorithm.none, HashAlgorithm.sha256, 0, null, []);
     }
     //TODO: support other KDF algorithms
     throw Exception('KDF is not implemented properly yet.');
@@ -52,13 +53,12 @@ class KdfData {
 
   Future<Iterable<int>> kdfItersaltedS2k(
       Iterable<int> pin, Iterable<int> salt) async {
-    final Iterable<int> data = salt.followedBy(pin);
+    final data = salt.followedBy(pin);
     final digest = hashAlgorithm.digest;
-    final List<int> input = List.empty();
-    final int trailingBytes = iterationCount % data.length;
-    final int dataCount =
-        ((iterationCount - trailingBytes) / data.length) as int;
-    final Iterable<int> trailing = data.skip(trailingBytes);
+    final input = List<int>.empty();
+    final trailingBytes = iterationCount % data.length;
+    final dataCount = ((iterationCount - trailingBytes) / data.length) as int;
+    final trailing = data.skip(trailingBytes);
     for (int i = 0; i < dataCount; i++) {
       input.addAll(data);
     }

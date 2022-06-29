@@ -4,14 +4,15 @@ import 'dart:typed_data';
 import 'package:collection/collection.dart';
 import 'package:convert/convert.dart';
 import 'package:cryptography/dart.dart';
+import 'package:meta/meta.dart';
 
 import 'curve.dart';
 
 class PGPUtils {
-  static final sha1 = const DartSha1();
+  static const sha1 = DartSha1();
 
   static Uint8List calculateECFingerprint(BigInt publicKey, ECCurve curve,
-      [int? timestamp]) {
+      [@visibleForTesting int? timestamp]) {
     return Uint8List.fromList(sha1
         .hashSync(buildECPublicKeyPacket(publicKey, curve, timestamp, 0x99))
         .bytes);
@@ -19,15 +20,16 @@ class PGPUtils {
 
   static Uint8List calculateRSAFingerprint(
       List<int> modulus, List<int> exponent,
-      [int? timestamp]) {
+      [@visibleForTesting int? timestamp]) {
     return Uint8List.fromList(sha1
         .hashSync(buildRSAPublicKeyPacket(modulus, exponent, timestamp, 0x99))
         .bytes);
   }
 
+  @visibleForTesting
   static Uint8List buildRSAPublicKeyPacket(
       List<int> modulus, List<int> exponent,
-      [int? timestamp, int? type]) {
+      [@visibleForTesting int? timestamp, @visibleForTesting int? type]) {
     final List<int> encoded =
         _timestampAndVersion(0x04, timestamp) + _mpi(modulus) + _mpi(exponent);
     type ??= encoded.length >> 8 == 0 ? 0x98 : 0x99;
@@ -39,6 +41,7 @@ class PGPUtils {
     return [number.length >> 8, number.length & 0xFF] + number;
   }
 
+  @visibleForTesting
   static Uint8List buildECPublicKeyPacket(BigInt publicKey, ECCurve curve,
       [int? timestamp, int? type]) {
     final List<int> encoded = _timestampAndVersion(0x04, timestamp) +
@@ -69,11 +72,11 @@ class PGPUtils {
     return '''-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 $content
-=${base64Encode(crc24(packet))}
+=${base64Encode(_crc24(packet))}
 -----END PGP PUBLIC KEY BLOCK-----''';
   }
 
-  static List<int> crc24(List<int> octets) {
+  static List<int> _crc24(List<int> octets) {
     int crc = 0xB704CE;
     for (var octet in octets) {
       crc ^= octet << 16;

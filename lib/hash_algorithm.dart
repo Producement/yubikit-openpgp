@@ -1,5 +1,5 @@
 import 'package:convert/convert.dart';
-import 'package:cryptography/cryptography.dart' as c;
+import 'package:cryptography/cryptography.dart' as cryptography;
 
 enum HashAlgorithm {
   sha256,
@@ -16,12 +16,12 @@ extension HashAlgorithmValue on HashAlgorithm {
     }
   }
 
-  c.HashAlgorithm get digest {
+  cryptography.HashAlgorithm get digest {
     switch (this) {
       case HashAlgorithm.sha256:
-        return c.Sha256();
+        return cryptography.Sha256();
       case HashAlgorithm.sha512:
-        return c.Sha512();
+        return cryptography.Sha512();
     }
   }
 

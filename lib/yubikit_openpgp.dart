@@ -29,7 +29,7 @@ class YubikitOpenPGP {
   static const String defaultPin = '123456';
   static const String defaultAdminPin = '12345678';
 
-  static final application = Application.openpgp;
+  static const application = Application.openpgp;
   final YubikitOpenPGPCommands _commands;
   final SmartCardInterface _smartCardInterface;
   final PinProvider _pinProvider;
@@ -152,13 +152,13 @@ class YubikitOpenPGP {
     return response;
   }
 
-  Future<TouchMode> getTouch(KeySlot keySlot) async {
+  Future<TouchMode> getTouchMode(KeySlot keySlot) async {
     final data = await _smartCardInterface.sendCommand(
         application, _commands.getTouch(keySlot));
     return TouchModeValues.parse(data);
   }
 
-  Future<void> setTouch(KeySlot keySlot, TouchMode mode) async {
+  Future<void> setTouchMode(KeySlot keySlot, TouchMode mode) async {
     await _smartCardInterface.sendCommand(
         application, _commands.setTouch(keySlot, mode));
   }
@@ -181,7 +181,8 @@ class YubikitOpenPGP {
     return PinRetries.fromBytes(response);
   }
 
-  Future<void> setPinRetries(int pw1Tries, int pw2Tries, int pw3Tries) async {
+  Future<void> setRemainingPinTries(
+      int pw1Tries, int pw2Tries, int pw3Tries) async {
     await _smartCardInterface.sendCommand(
         application, _commands.setPinRetries(pw1Tries, pw2Tries, pw3Tries));
   }
@@ -196,15 +197,15 @@ class YubikitOpenPGP {
   }
 
   List<Uint8List> _blockPins() {
-    const cmds = YubikitOpenPGPCommands();
-    final invalidPin = '00000000';
-    final pinCmds = Iterable.generate(9)
-        .map((e) => cmds.verifySignaturePin(invalidPin))
+    const commands = YubikitOpenPGPCommands();
+    const invalidPin = '00000000';
+    final pinCommands = Iterable.generate(9)
+        .map((e) => commands.verifySignaturePin(invalidPin))
         .toList();
-    final adminPinCmds = Iterable.generate(9)
-        .map((e) => cmds.verifyAdminPin(invalidPin))
+    final adminPinCommands = Iterable.generate(9)
+        .map((e) => commands.verifyAdminPin(invalidPin))
         .toList();
-    return pinCmds + adminPinCmds;
+    return pinCommands + adminPinCommands;
   }
 }
 

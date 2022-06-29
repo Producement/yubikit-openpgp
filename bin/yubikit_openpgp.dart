@@ -3,7 +3,7 @@ import 'package:yubikit_openpgp/yubikit_openpgp.dart';
 
 void main(List<String> arguments) async {
   // Directly calls gpg-connect-agent, provide your own implementation!
-  final smartCardInterface = SmartCardInterface();
+  const smartCardInterface = SmartCardInterface();
   final pinProvider = PinProvider();
   final openPGPInterface = YubikitOpenPGP(smartCardInterface, pinProvider);
 

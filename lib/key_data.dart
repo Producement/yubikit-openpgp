@@ -63,6 +63,15 @@ abstract class KeyData {
     }
     throw ArgumentError.value(publicKey);
   }
+
+  @override
+  String toString() => String.fromCharCodes(toJwk().toUtf8());
+
+  @override
+  int get hashCode => toJwk().hashCode;
+
+  @override
+  bool operator ==(other) => other is KeyData && other.toJwk() == toJwk();
 }
 
 class ECKeyData extends KeyData {
