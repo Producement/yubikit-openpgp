@@ -1,5 +1,9 @@
 name: Dart
-on: [push]
+on:
+  push:
+  pull_request:
+    branches:
+      - main
 jobs:
   check:
     runs-on: ubuntu-latest
