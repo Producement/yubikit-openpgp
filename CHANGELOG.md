@@ -1,3 +1,7 @@
+## 1.0.20
+
+- Decrease meta version.
+
 ## 1.0.19
 
 - Improve code quality.
