@@ -197,7 +197,7 @@ class YubikitOpenPGP {
 
   List<Uint8List> _blockPins() {
     const cmds = YubikitOpenPGPCommands();
-    var invalidPin = '00000000';
+    final invalidPin = '00000000';
     final pinCmds = Iterable.generate(9)
         .map((e) => cmds.verifySignaturePin(invalidPin))
         .toList();

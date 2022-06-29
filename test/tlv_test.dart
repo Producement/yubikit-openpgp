@@ -6,8 +6,8 @@ import 'package:yubikit_openpgp/utils.dart';
 
 void main() {
   test('Parses simple TLV value', () async {
-    Uint8List data = Uint8List.fromList([0x60, 0x02, 0x01, 0x03]);
-    Tlv tlv = Tlv.parse(data, offset: 0);
+    final Uint8List data = Uint8List.fromList([0x60, 0x02, 0x01, 0x03]);
+    final Tlv tlv = Tlv.parse(data, offset: 0);
     expect(tlv.tag, equals(0x60));
     expect(tlv.offset, equals(0x02));
     expect(tlv.end, equals(0x04));
@@ -15,15 +15,15 @@ void main() {
   });
 
   test('Parses simple TLV data value as map', () async {
-    Uint8List data = Uint8List.fromList([0x60, 0x02, 0x01, 0x03]);
-    TlvData tlvData = TlvData.parse(data);
+    final Uint8List data = Uint8List.fromList([0x60, 0x02, 0x01, 0x03]);
+    final TlvData tlvData = TlvData.parse(data);
     expect(tlvData.getValue(0x60), equals(Uint8List.fromList([0x01, 0x03])));
   });
 
   test('Parses multiple TLV values', () async {
-    Uint8List data = Uint8List.fromList(
+    final Uint8List data = Uint8List.fromList(
         [0x60, 0x02, 0x01, 0x03, 0x61, 0x01, 0x01, 0x62, 0x00]);
-    TlvData tlvData = TlvData.parse(data);
+    final TlvData tlvData = TlvData.parse(data);
     expect(tlvData.getValue(0x60), equals(Uint8List.fromList([0x01, 0x03])));
     expect(tlvData.getValue(0x61), equals(Uint8List.fromList([0x01])));
     expect(tlvData.getValue(0x62), equals(Uint8List.fromList([])));
@@ -338,7 +338,7 @@ void main() {
       ..setUint8(1, data[8]);
     expect(fullModulusLength.getUint16(0), equals(256));
     // Public exponent (0x82) starts after modulus
-    int peIndex = 9 + 256;
+    final int peIndex = 9 + 256;
     expect(data[peIndex], equals(0x82));
     // Public exponent is short, usually 65537
     expect(data[peIndex + 1], lessThan(0x80));

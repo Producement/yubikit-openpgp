@@ -36,11 +36,11 @@ class SmartCardInterface {
 
   Future<SmartCardResponse> _sendCommand(List<int> input,
       [List<int> accumulatingBytes = const []]) async {
-    String command = 'scd apdu ${_hexWithSpaces(input)}';
-    var processResult =
+    final String command = 'scd apdu ${_hexWithSpaces(input)}';
+    final processResult =
         await Process.run('gpg-connect-agent', [command], stdoutEncoding: null);
-    List<int> result = processResult.stdout;
-    Function eq = const ListEquality().equals;
+    final List<int> result = processResult.stdout;
+    final Function eq = const ListEquality().equals;
     final resultStatus =
         result.skip(result.length - _successfulEnd.length).toList();
     final isLongResponse = (resultStatus[0] == 0x61);

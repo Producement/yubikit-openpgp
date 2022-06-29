@@ -29,7 +29,7 @@ class Tlv {
       }
     } else {
       if (length > 0x80) {
-        int numberOfBytes = length - 0x80;
+        final int numberOfBytes = length - 0x80;
         final blob = ByteData.sublistView(
             Uint8List.fromList(data.sublist(offset, offset + numberOfBytes)));
         length = blob.getInt16(0);
@@ -54,7 +54,7 @@ class TlvData {
   const TlvData(this.tlvData, this.data);
 
   Uint8List getValue(int tag) {
-    Tlv? tlv = tlvData[tag];
+    final Tlv? tlv = tlvData[tag];
     if (tlv != null) {
       return Uint8List.fromList(data.sublist(tlv.offset, tlv.end));
     }
@@ -70,10 +70,10 @@ class TlvData {
   }
 
   factory TlvData.parse(List<int> data) {
-    Map<int, Tlv> parsedData = {};
+    final Map<int, Tlv> parsedData = {};
     int offset = 0;
     while (offset < data.length) {
-      var tlv = Tlv.parse(data, offset: offset);
+      final tlv = Tlv.parse(data, offset: offset);
       parsedData[tlv.tag] = tlv;
       offset = tlv.end;
     }

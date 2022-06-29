@@ -52,12 +52,13 @@ class KdfData {
 
   Future<Iterable<int>> kdfItersaltedS2k(
       Iterable<int> pin, Iterable<int> salt) async {
-    Iterable<int> data = salt.followedBy(pin);
+    final Iterable<int> data = salt.followedBy(pin);
     final digest = hashAlgorithm.digest;
-    List<int> input = List.empty();
-    int trailingBytes = iterationCount % data.length;
-    int dataCount = ((iterationCount - trailingBytes) / data.length) as int;
-    Iterable<int> trailing = data.skip(trailingBytes);
+    final List<int> input = List.empty();
+    final int trailingBytes = iterationCount % data.length;
+    final int dataCount =
+        ((iterationCount - trailingBytes) / data.length) as int;
+    final Iterable<int> trailing = data.skip(trailingBytes);
     for (int i = 0; i < dataCount; i++) {
       input.addAll(data);
     }

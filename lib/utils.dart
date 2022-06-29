@@ -28,7 +28,7 @@ class PGPUtils {
   static Uint8List buildRSAPublicKeyPacket(
       List<int> modulus, List<int> exponent,
       [int? timestamp, int? type]) {
-    List<int> encoded =
+    final List<int> encoded =
         _timestampAndVersion(0x04, timestamp) + _mpi(modulus) + _mpi(exponent);
     type ??= encoded.length >> 8 == 0 ? 0x98 : 0x99;
     return Uint8List.fromList(
@@ -41,7 +41,7 @@ class PGPUtils {
 
   static Uint8List buildECPublicKeyPacket(BigInt publicKey, ECCurve curve,
       [int? timestamp, int? type]) {
-    List<int> encoded = _timestampAndVersion(0x04, timestamp) +
+    final List<int> encoded = _timestampAndVersion(0x04, timestamp) +
         _curve(curve) +
         _keyMaterial(publicKey);
     type ??= encoded.length >> 8 == 0 ? 0x98 : 0x99;
@@ -51,7 +51,7 @@ class PGPUtils {
 
   static Uint8List _timestampAndVersion(int version, int? timestamp) {
     timestamp ??= (DateTime.now().millisecondsSinceEpoch / 1000).round();
-    var timestampBytes = ByteData(4)..setInt32(0, timestamp);
+    final timestampBytes = ByteData(4)..setInt32(0, timestamp);
     return Uint8List.fromList([version] + timestampBytes.buffer.asUint8List());
   }
 
@@ -65,7 +65,7 @@ class PGPUtils {
   }
 
   static String armor(List<int> packet) {
-    var content = base64Encode(packet);
+    final content = base64Encode(packet);
     return '''-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 $content
