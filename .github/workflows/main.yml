@@ -39,4 +39,4 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           lcov-file: ./coverage/lcov.info
-          token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT }}
